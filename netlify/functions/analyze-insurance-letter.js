@@ -30,6 +30,8 @@ const { evaluateRisk, getRiskGuidance, formatHardStopMessage } = require("./insu
 const { generateEvidenceChecklist } = require("./insurance-evidence-mapper");
 const { formatAnalysisOutput, formatHardStopMessage: formatHardStop } = require("./insurance-output-formatter");
 const { getSupabaseAdmin } = require("./_supabase");
+const { checkRateLimit, getRateLimitKey, getRateLimitForAction } = require("./rate-limiter");
+const { validateClassification, sanitizeText } = require("./input-validator");
 
 exports.handler = async (event) => {
   console.log('=== INSURANCE LETTER ANALYSIS START ===');
@@ -49,6 +51,43 @@ exports.handler = async (event) => {
 
   try {
     const { filePath, fileName, classification, userId } = JSON.parse(event.body || "{}");
+    
+    // RATE LIMITING
+    const clientIp = event.headers['x-forwarded-for'] || event.headers['client-ip'] || 'unknown';
+    const rateLimitKey = getRateLimitKey(clientIp, userId, 'analyze');
+    const rateLimit = checkRateLimit(rateLimitKey, getRateLimitForAction('analyze'));
+    
+    if (!rateLimit.allowed) {
+      return {
+        statusCode: 429,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Retry-After': rateLimit.retryAfter.toString()
+        },
+        body: JSON.stringify({
+          error: 'Rate limit exceeded',
+          message: `Too many requests. Please try again in ${rateLimit.retryAfter} seconds.`,
+          retryAfter: rateLimit.retryAfter
+        })
+      };
+    }
+    
+    // INPUT VALIDATION
+    const validationResult = validateClassification(classification);
+    if (!validationResult.valid) {
+      return {
+        statusCode: 400,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        },
+        body: JSON.stringify({
+          error: 'Invalid classification',
+          details: validationResult.errors
+        })
+      };
+    }
     
     // STEP 1: VALIDATE CLASSIFICATION (MANDATORY GATE)
     console.log('Step 1: Validating classification...');
@@ -103,14 +142,56 @@ exports.handler = async (event) => {
     console.log('Step 2: Extracting letter text...');
     let letterText = '';
     
-    // For now, we'll use a placeholder. In production, extract from filePath
-    // This would involve reading from Supabase storage and using OCR/PDF parsing
-    letterText = `[Letter text would be extracted from ${fileName}]`;
+    // Download and extract text from file
+    const supabase = getSupabaseAdmin();
     
-    // In production, you would:
-    // 1. Download file from Supabase storage using filePath
-    // 2. Use pdf-parse for PDFs or Tesseract for images
-    // 3. Extract text content
+    try {
+      const { data: fileData, error: downloadError } = await supabase.storage
+        .from('claim-letters')
+        .download(filePath);
+
+      if (downloadError) {
+        throw new Error(`Failed to download file: ${downloadError.message}`);
+      }
+
+      // Determine file type and extract
+      const fileExtension = fileName.toLowerCase().split('.').pop();
+      
+      if (fileExtension === 'pdf') {
+        const pdfParse = require('pdf-parse');
+        const buffer = await fileData.arrayBuffer();
+        const pdfData = await pdfParse(Buffer.from(buffer));
+        letterText = pdfData.text;
+      } else if (['jpg', 'jpeg', 'png'].includes(fileExtension)) {
+        const Tesseract = require('tesseract.js');
+        const buffer = await fileData.arrayBuffer();
+        const result = await Tesseract.recognize(Buffer.from(buffer), 'eng');
+        letterText = result.data.text;
+      } else {
+        throw new Error('Unsupported file type');
+      }
+
+      if (!letterText || letterText.trim().length < 50) {
+        throw new Error('Could not extract sufficient text from file. Minimum 50 characters required.');
+      }
+
+      console.log(`Extracted ${letterText.length} characters from ${fileName}`);
+      
+    } catch (extractError) {
+      console.error('Text extraction error:', extractError);
+      return {
+        statusCode: 500,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        },
+        body: JSON.stringify({
+          error: 'Text extraction failed',
+          details: extractError.message,
+          message: 'Could not extract text from uploaded file. Please ensure the file is readable and try again.'
+        })
+      };
+    }
     
     // STEP 3: DETECT PHASE (MANDATORY)
     console.log('Step 3: Detecting letter phase...');

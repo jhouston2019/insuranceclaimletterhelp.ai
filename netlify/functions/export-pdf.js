@@ -21,7 +21,7 @@ export async function handler(event) {
       statusCode: 200,
       headers: { 
         'Content-Type': 'application/pdf',
-        'Content-Disposition': 'attachment; filename="IRS_Response.pdf"',
+        'Content-Disposition': 'attachment; filename="Insurance_Response_Letter.pdf"',
         'Access-Control-Allow-Origin': '*'
       },
       body: pdfBuffer.toString('base64'),

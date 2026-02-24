@@ -21,17 +21,85 @@ export async function handler(event) {
     if (evt.type === "checkout.session.completed") {
       const session = evt.data.object;
       const recordId = session.metadata?.recordId || null;
+      const customerEmail = session.customer_details?.email || session.customer_email;
+
+      console.log('Checkout completed:', {
+        sessionId: session.id,
+        recordId,
+        email: customerEmail,
+        paymentStatus: session.payment_status
+      });
+
+      const supabase = getSupabaseAdmin();
 
       if (recordId) {
-        const supabase = getSupabaseAdmin();
-        await supabase
-          .from("cla_letters")
+        // Update specific record
+        const { error } = await supabase
+          .from("claim_letters")
           .update({
             stripe_session_id: session.id,
             stripe_payment_status: session.payment_status,
+            payment_status: 'paid',
+            updated_at: new Date().toISOString()
           })
           .eq("id", recordId);
+
+        if (error) {
+          console.error('Failed to update record:', error);
+        } else {
+          console.log('Payment verified for record:', recordId);
+        }
+      } else if (customerEmail) {
+        // Create payment record for user
+        const { error } = await supabase
+          .from("claim_letters")
+          .insert({
+            user_email: customerEmail,
+            stripe_session_id: session.id,
+            stripe_payment_status: session.payment_status,
+            payment_status: 'paid',
+            status: 'payment_completed',
+            file_name: 'pending_upload',
+            file_path: 'pending_upload'
+          });
+
+        if (error) {
+          console.error('Failed to create payment record:', error);
+        }
       }
+    }
+
+    // Handle subscription events (if using subscriptions)
+    if (evt.type === "customer.subscription.created" || 
+        evt.type === "customer.subscription.updated") {
+      const subscription = evt.data.object;
+      const customerId = subscription.customer;
+
+      const supabase = getSupabaseAdmin();
+      
+      // Update or create subscription record
+      await supabase
+        .from("subscriptions")
+        .upsert({
+          stripe_customer_id: customerId,
+          stripe_subscription_id: subscription.id,
+          status: subscription.status,
+          plan_type: subscription.metadata?.plan_type || 'STANDARD',
+          current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+          current_period_end: new Date(subscription.current_period_end * 1000).toISOString()
+        }, {
+          onConflict: 'stripe_subscription_id'
+        });
+    }
+
+    if (evt.type === "customer.subscription.deleted") {
+      const subscription = evt.data.object;
+      
+      const supabase = getSupabaseAdmin();
+      await supabase
+        .from("subscriptions")
+        .update({ status: 'canceled' })
+        .eq("stripe_subscription_id", subscription.id);
     }
 
     return { statusCode: 200, body: "ok" };

@@ -231,13 +231,10 @@
       } catch (error) {
         uploadStatus.textContent = `Upload error: ${error.message}`;
         uploadStatus.style.color = '#dc2626';
-        console.error('Upload error:', error);
       }
     };
 
     analyzeBtn.onclick = async () => {
-      console.log('Analyze button clicked');
-      
       // MANDATORY VALIDATION
       const claimType = document.getElementById('claimType').value;
       const partyType = document.getElementById('partyType').value;
@@ -316,7 +313,6 @@
         }
         
       } catch (error) {
-        console.error('Analysis error:', error);
         showStatus(`Analysis failed: ${error.message}`);
       }
     };

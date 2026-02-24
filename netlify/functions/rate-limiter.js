@@ -1,0 +1,53 @@
+/**
+ * RATE LIMITING MIDDLEWARE
+ * 
+ * Prevents abuse by limiting requests per IP/user
+ */
+
+const rateLimit = new Map();
+
+const RATE_LIMITS = {
+  upload: { maxRequests: 5, windowMs: 60 * 60 * 1000 }, // 5 per hour
+  analyze: { maxRequests: 10, windowMs: 60 * 60 * 1000 }, // 10 per hour
+  generate: { maxRequests: 5, windowMs: 60 * 60 * 1000 }, // 5 per hour
+  default: { maxRequests: 100, windowMs: 60 * 60 * 1000 } // 100 per hour
+};
+
+function getRateLimitKey(ip, userId, action) {
+  return `${action}:${userId || ip}`;
+}
+
+function checkRateLimit(key, limit) {
+  const now = Date.now();
+  const record = rateLimit.get(key) || { count: 0, resetTime: now + limit.windowMs };
+
+  if (now > record.resetTime) {
+    record.count = 0;
+    record.resetTime = now + limit.windowMs;
+  }
+
+  if (record.count >= limit.maxRequests) {
+    return {
+      allowed: false,
+      retryAfter: Math.ceil((record.resetTime - now) / 1000)
+    };
+  }
+
+  record.count++;
+  rateLimit.set(key, record);
+
+  return {
+    allowed: true,
+    remaining: limit.maxRequests - record.count
+  };
+}
+
+function getRateLimitForAction(action) {
+  return RATE_LIMITS[action] || RATE_LIMITS.default;
+}
+
+module.exports = {
+  checkRateLimit,
+  getRateLimitKey,
+  getRateLimitForAction
+};

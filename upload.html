@@ -195,8 +195,16 @@
         document.addEventListener('DOMContentLoaded', async () => {
             currentUser = await getCurrentUser();
             if (!currentUser) {
-                currentUser = { id: 'test-user-123', email: 'test@example.com' };
-                console.log('Using mock user for testing');
+                alert('Please login to access the upload page.');
+                window.location.href = '/login.html';
+                return;
+            }
+            
+            const hasPaid = localStorage.getItem('paid') === 'true';
+            if (!hasPaid) {
+                alert('Payment required. Redirecting to payment page...');
+                window.location.href = '/payment.html';
+                return;
             }
         });
         
@@ -235,13 +243,13 @@
             showStatus('Uploading file...');
             
             try {
-                // Upload file
-                uploadedFilePath = await uploadFile(file, currentUser.id);
-                await saveDocumentToDatabase(currentUser.id, file.name, uploadedFilePath);
+                // Upload file to Supabase Storage
+                const uploadResult = await uploadFile(file, currentUser.id);
+                uploadedFilePath = uploadResult.path || uploadResult.fullPath;
                 
-                showStatus('Analyzing letter and checking safety conditions...');
+                showStatus('Saving document...');
                 
-                // Prepare classification data
+                // Save to database
                 const classificationData = {
                     claimType,
                     partyType,
@@ -252,7 +260,35 @@
                     isHighRiskCommercial
                 };
                 
-                // Call analysis endpoint
+                const savedDoc = await saveDocumentToDatabase(
+                    currentUser.id, 
+                    file.name, 
+                    uploadResult,
+                    classificationData
+                );
+                
+                showStatus('Extracting text from document...');
+                
+                // Extract text from uploaded file
+                const extractResponse = await fetch('/.netlify/functions/extract-text-from-file', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        filePath: uploadedFilePath,
+                        fileType: file.type,
+                        documentId: savedDoc.id
+                    })
+                });
+                
+                const extractResult = await extractResponse.json();
+                
+                if (!extractResult.success) {
+                    throw new Error(extractResult.details || 'Text extraction failed');
+                }
+                
+                showStatus('Analyzing letter and checking safety conditions...');
+                
+                // Call analysis endpoint with extracted text
                 const response = await fetch('/.netlify/functions/analyze-insurance-letter', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -260,7 +296,8 @@
                         filePath: uploadedFilePath,
                         fileName: file.name,
                         classification: classificationData,
-                        userId: currentUser.id
+                        userId: currentUser.id,
+                        documentId: savedDoc.id
                     })
                 });
                 
@@ -271,7 +308,6 @@
                 
             } catch (error) {
                 showStatus(`Error: ${error.message}`);
-                console.error('Analysis error:', error);
             }
         });
         
