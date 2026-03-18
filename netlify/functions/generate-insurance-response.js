@@ -162,13 +162,16 @@ exports.handler = async (event) => {
     // STEP 7: USE AI ONLY FOR VARIABLE SUBSTITUTION (if needed)
     // Temperature 0.2 - deterministic only
     let finalLetter = sanitizedLetter;
+    let aiResponse = null;
     
-    if (variables?.useAiSubstitution && process.env.OPENAI_API_KEY) {
+    if (variables?.useAiSubstitution) {
       console.log('Step 5: AI variable substitution...');
       
-      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-      
-      const systemPrompt = `You are a procedural document formatter. Your ONLY task is to fill in placeholder variables in a template.
+      try {
+        // Try parity layer first
+        const { execute } = require('./_parity/parity-gateway');
+        
+        const systemPrompt = `You are a procedural document formatter. Your ONLY task is to fill in placeholder variables in a template.
 
 CRITICAL CONSTRAINTS:
 - Do NOT add content
@@ -182,17 +185,66 @@ ${JSON.stringify(variables, null, 2)}
 
 Return ONLY the completed template with variables substituted. No additions. No modifications.`;
 
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        temperature: 0.2, // LOW TEMPERATURE - Deterministic
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: `Substitute variables in this template:\n\n${sanitizedLetter}` }
-        ]
-      });
+        const userPrompt = `Substitute variables in this template:\n\n${sanitizedLetter}`;
+        
+        aiResponse = await execute({
+          operation: 'generate',
+          systemPrompt,
+          userPrompt,
+          claimAmount: variables?.claimAmount,
+          claimType: classification?.claimType,
+          phase: phase.phase,
+          riskLevel: riskAssessment.riskLevel,
+          letterId: recordId
+        });
+        
+        console.log(`Generation completed using ${aiResponse.provider}/${aiResponse.model}`);
+        
+        const aiOutput = aiResponse.content || sanitizedLetter;
+        finalLetter = sanitizeOutput(aiOutput);
+        
+      } catch (parityError) {
+        console.warn('Parity layer failed, using direct OpenAI:', parityError.message);
+        
+        // Fallback to direct OpenAI
+        if (!process.env.OPENAI_API_KEY) {
+          throw new Error('OpenAI API key not configured');
+        }
+        
+        const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+        
+        const systemPrompt = `You are a procedural document formatter. Your ONLY task is to fill in placeholder variables in a template.
 
-      const aiOutput = completion.choices?.[0]?.message?.content || sanitizedLetter;
-      finalLetter = sanitizeOutput(aiOutput);
+CRITICAL CONSTRAINTS:
+- Do NOT add content
+- Do NOT modify structure
+- Do NOT add explanations
+- Do NOT use emotional language
+- ONLY substitute [PLACEHOLDER] values with provided data
+
+Template variables to substitute:
+${JSON.stringify(variables, null, 2)}
+
+Return ONLY the completed template with variables substituted. No additions. No modifications.`;
+
+        const completion = await openai.chat.completions.create({
+          model: "gpt-4o-mini",
+          temperature: 0.2,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: `Substitute variables in this template:\n\n${sanitizedLetter}` }
+          ]
+        });
+
+        const aiOutput = completion.choices?.[0]?.message?.content || sanitizedLetter;
+        finalLetter = sanitizeOutput(aiOutput);
+        
+        aiResponse = {
+          provider: 'openai',
+          model: 'gpt-4o-mini',
+          parityUsed: false
+        };
+      }
     }
     
     // STEP 8: FORMAT FINAL OUTPUT

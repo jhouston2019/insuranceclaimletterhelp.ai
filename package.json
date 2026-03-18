@@ -12,6 +12,8 @@
     "prod:check:netlify": "node scripts/check-prod-netlify.mjs"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.20.0",
+    "@google/generative-ai": "^0.21.0",
     "@sendgrid/mail": "^8.1.6",
     "@supabase/supabase-js": "^2.76.1",
     "bcryptjs": "^2.4.3",

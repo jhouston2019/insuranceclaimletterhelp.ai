@@ -284,17 +284,19 @@ exports.handler = async (event) => {
     // STEP 6: GENERATE PROCEDURAL ANALYSIS (Only if safe)
     console.log('Step 6: Generating procedural analysis...');
     
-    if (!process.env.OPENAI_API_KEY) {
-      throw new Error('OpenAI API key not configured');
-    }
-    
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-    
     // Get claim type metadata
     const claimMetadata = getClaimTypeMetadata(validatedClassification.claimType);
     
-    // HARDENED SYSTEM PROMPT - NO IRS, NO TAX
-    const systemPrompt = `You are a procedural insurance correspondence analyzer. You provide FACTUAL analysis only.
+    // Try parity layer first, fallback to direct OpenAI
+    let aiResponse;
+    let parsedAnalysis;
+    
+    try {
+      // Import parity gateway
+      const { execute, analyzeWithParity } = require('./_parity/parity-gateway');
+      
+      // HARDENED SYSTEM PROMPT - NO IRS, NO TAX
+      const systemPrompt = `You are a procedural insurance correspondence analyzer. You provide FACTUAL analysis only.
 
 CRITICAL CONSTRAINTS:
 - NO advice or recommendations
@@ -327,27 +329,102 @@ Provide analysis in this JSON format:
 
 Be factual. Be brief. Do not advise.`;
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      temperature: 0.2, // LOW TEMPERATURE - Deterministic
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: `Analyze this insurance letter:\n\n${letterText}` }
-      ]
-    });
+      const userPrompt = `Analyze this insurance letter:\n\n${letterText}`;
+      
+      // Execute through parity gateway
+      aiResponse = await execute({
+        operation: 'analyze',
+        systemPrompt,
+        userPrompt,
+        claimAmount: validatedClassification.claimAmount,
+        claimType: validatedClassification.claimType,
+        phase: phaseResult.phase,
+        riskLevel: riskAssessment.riskLevel,
+        letterId: paymentVerification.documentId,
+        userId
+      });
+      
+      console.log(`Analysis completed using ${aiResponse.provider}/${aiResponse.model}`);
+      
+      // Parse response content
+      let aiAnalysis = aiResponse.content || "{}";
+      
+      // Clean up markdown if present
+      if (aiAnalysis.includes('```json')) {
+        aiAnalysis = aiAnalysis.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      }
+      
+      parsedAnalysis = JSON.parse(aiAnalysis);
+      
+    } catch (parityError) {
+      console.warn('Parity layer failed, using direct OpenAI:', parityError.message);
+      
+      // Fallback to direct OpenAI
+      if (!process.env.OPENAI_API_KEY) {
+        throw new Error('OpenAI API key not configured');
+      }
+      
+      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      
+      const systemPrompt = `You are a procedural insurance correspondence analyzer. You provide FACTUAL analysis only.
 
-    let aiAnalysis = completion.choices?.[0]?.message?.content || "{}";
-    
-    // Clean up markdown if present
-    if (aiAnalysis.includes('```json')) {
-      aiAnalysis = aiAnalysis.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+CRITICAL CONSTRAINTS:
+- NO advice or recommendations
+- NO strategy or negotiation tactics
+- NO emotional language
+- NO persuasive framing
+- NO interpretation beyond facts stated in letter
+- NO speculation
+
+Your role is to:
+1. Identify factual elements in the letter
+2. Extract denial reasons (if present)
+3. Identify requested information (if present)
+4. Note deadlines (if present)
+5. Reference policy sections (if mentioned)
+
+Claim Type: ${claimMetadata.name}
+Letter Phase: ${phaseResult.phase}
+
+Provide analysis in this JSON format:
+{
+  "letterType": "Type of letter (denial, information request, etc.)",
+  "denialReasons": ["Reason 1", "Reason 2"] or null,
+  "requestedInformation": ["Item 1", "Item 2"] or null,
+  "deadlines": ["Deadline 1", "Deadline 2"] or null,
+  "policyReferences": ["Section 1", "Section 2"] or null,
+  "keyFacts": ["Fact 1", "Fact 2"],
+  "proceduralSummary": "Brief factual summary of letter content"
+}
+
+Be factual. Be brief. Do not advise.`;
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        temperature: 0.2,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: `Analyze this insurance letter:\n\n${letterText}` }
+        ]
+      });
+
+      let aiAnalysis = completion.choices?.[0]?.message?.content || "{}";
+      
+      if (aiAnalysis.includes('```json')) {
+        aiAnalysis = aiAnalysis.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      }
+      
+      parsedAnalysis = JSON.parse(aiAnalysis);
+      
+      aiResponse = {
+        provider: 'openai',
+        model: 'gpt-4o-mini',
+        parityUsed: false
+      };
     }
     
-    let parsedAnalysis;
-    try {
-      parsedAnalysis = JSON.parse(aiAnalysis);
-    } catch (parseError) {
-      console.error('Failed to parse AI response:', parseError);
+    // Validate parsed analysis
+    if (!parsedAnalysis) {
       parsedAnalysis = {
         letterType: phaseResult.phase,
         proceduralSummary: 'Analysis could not be completed. Manual review required.'
