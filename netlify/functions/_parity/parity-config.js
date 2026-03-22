@@ -1,7 +1,7 @@
 /**
  * PARITY LAYER CONFIGURATION
  * 
- * Multi-provider AI configuration for Insurance Claim Letter Help AI
+ * Multi-provider AI configuration for Insurance Claim Response Pro
  * 
  * PROVIDERS:
  * - OpenAI (primary)

@@ -1,4 +1,4 @@
--- Claim Letter Help Database Schema
+-- Insurance Claim Response Pro — database schema
 -- Run this in Supabase SQL Editor
 
 -- Table to track the full lifecycle of each letter/response

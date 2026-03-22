@@ -1,6 +1,6 @@
 -- ============================================================================
 -- MASTER MIGRATION - RUN THIS ONCE IN SUPABASE SQL EDITOR
--- Insurance Claim Letter Help - Complete Database Setup
+-- Insurance Claim Response Pro - Complete Database Setup
 -- ============================================================================
 -- This combines all migrations into one file for easy execution
 -- Run this in Supabase Dashboard > SQL Editor > New Query
@@ -254,6 +254,34 @@ COMMENT ON CONSTRAINT one_letter_per_payment ON public.claim_letters IS
 'Database-level enforcement: One Stripe session can only be used for one letter';
 
 -- ============================================================================
+-- PART 9: PLATFORM SITE NAME (Insurance Claim Response Pro)
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS public.platform_settings (
+  key text PRIMARY KEY,
+  value text NOT NULL,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+COMMENT ON TABLE public.platform_settings IS
+'Public site-wide settings (e.g. platform display name for Insurance Claim Response Pro)';
+
+INSERT INTO public.platform_settings (key, value) VALUES
+  ('site_name', 'Insurance Claim Response Pro')
+ON CONFLICT (key) DO UPDATE SET
+  value = EXCLUDED.value,
+  updated_at = now();
+
+ALTER TABLE public.platform_settings ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public read platform_settings" ON public.platform_settings;
+CREATE POLICY "Public read platform_settings"
+  ON public.platform_settings
+  FOR SELECT
+  TO anon, authenticated
+  USING (true);
+
+-- ============================================================================
 -- VERIFICATION QUERIES (Run these after to confirm)
 -- ============================================================================
 
@@ -291,6 +319,7 @@ DO $$
 BEGIN 
   RAISE NOTICE '✅ MIGRATION COMPLETE';
   RAISE NOTICE 'Table: claim_letters created';
+  RAISE NOTICE 'Table: platform_settings (site_name = Insurance Claim Response Pro)';
   RAISE NOTICE 'Constraint: one_letter_per_payment active';
   RAISE NOTICE 'RLS: Enabled with policies';
   RAISE NOTICE 'Storage: claim-letters bucket created (private)';

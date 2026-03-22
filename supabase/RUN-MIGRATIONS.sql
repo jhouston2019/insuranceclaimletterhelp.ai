@@ -1,5 +1,5 @@
 -- ========================================
--- Claim Letter Help - Complete Database Setup
+-- Insurance Claim Response Pro - Complete Database Setup
 -- Run this ENTIRE file in Supabase SQL Editor
 -- ========================================
 

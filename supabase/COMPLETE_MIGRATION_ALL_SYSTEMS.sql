@@ -1,11 +1,12 @@
 -- ============================================================================
--- COMPLETE MIGRATION - ALL SYSTEMS
+-- COMPLETE MIGRATION - ALL SYSTEMS (Insurance Claim Response Pro)
 -- Run this ONCE in Supabase SQL Editor
 -- ============================================================================
 -- Includes:
 -- 1. Base claim_letters table (MASTER_MIGRATION_RUN_THIS.sql)
 -- 2. Quality systems (citation, quality, outcomes, logging, A/B tests)
 -- 3. Admin system (authentication, dashboard)
+-- 4. Platform site name (platform_settings)
 -- ============================================================================
 
 -- ============================================================================
@@ -605,6 +606,34 @@ LEFT JOIN public.claim_letters cl ON qm.document_id = cl.id
 ORDER BY qm.created_at DESC;
 
 -- ============================================================================
+-- PART 6: PLATFORM SITE NAME (Insurance Claim Response Pro)
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS public.platform_settings (
+  key text PRIMARY KEY,
+  value text NOT NULL,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+COMMENT ON TABLE public.platform_settings IS
+'Public site-wide settings (e.g. platform display name for Insurance Claim Response Pro)';
+
+INSERT INTO public.platform_settings (key, value) VALUES
+  ('site_name', 'Insurance Claim Response Pro')
+ON CONFLICT (key) DO UPDATE SET
+  value = EXCLUDED.value,
+  updated_at = now();
+
+ALTER TABLE public.platform_settings ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public read platform_settings" ON public.platform_settings;
+CREATE POLICY "Public read platform_settings"
+  ON public.platform_settings
+  FOR SELECT
+  TO anon, authenticated
+  USING (true);
+
+-- ============================================================================
 -- SUCCESS MESSAGE
 -- ============================================================================
 
@@ -634,6 +663,9 @@ BEGIN
   RAISE NOTICE '   ✅ admin_users table';
   RAISE NOTICE '   ✅ admin_sessions table';
   RAISE NOTICE '   ✅ admin_activity_log table';
+  RAISE NOTICE '';
+  RAISE NOTICE '🏷️ PLATFORM:';
+  RAISE NOTICE '   ✅ platform_settings (site_name = Insurance Claim Response Pro)';
   RAISE NOTICE '';
   RAISE NOTICE '📈 ANALYTICS:';
   RAISE NOTICE '   ✅ admin_dashboard_stats view';
