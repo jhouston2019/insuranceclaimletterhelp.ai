@@ -22,6 +22,53 @@
   
   <!-- Ads CSS -->
   <link rel="stylesheet" href="/src/ads.css">
+  <style>
+    .platform-preview-section {
+      background: #0f172a;
+      padding: 80px 0;
+    }
+    .platform-preview-section .dashboard-visual-wrapper {
+      width: min(1120px, 92%);
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .platform-preview-section .platform-screenshot-container {
+      box-shadow: 0 40px 100px rgba(0, 0, 0, 0.6);
+    }
+    .platform-preview-section .platform-screenshot-container img {
+      width: 100%;
+      max-width: 100%;
+      height: auto;
+      display: block;
+    }
+    .platform-preview-section .platform-callout-title {
+      color: #ffffff;
+      text-align: center;
+      font-size: 1.75rem;
+      font-weight: 700;
+      margin: 1.5rem 0 0.75rem;
+    }
+    .platform-preview-section .platform-callout-body {
+      color: rgba(255, 255, 255, 0.65);
+      text-align: center;
+      max-width: 640px;
+      margin: 0 auto;
+      line-height: 1.6;
+      font-size: 1.05rem;
+    }
+    @media (max-width: 768px) {
+      .platform-preview-section .platform-screenshot-container,
+      .platform-preview-section .dashboard-visual-wrapper {
+        max-width: 100%;
+        width: 100%;
+        margin-left: 0;
+        margin-right: 0;
+        padding-left: 1rem;
+        padding-right: 1rem;
+        box-sizing: border-box;
+      }
+    }
+  </style>
 </head>
 
 <body style="background:#0f172a; color:#ffffff; font-family:'Inter',sans-serif; margin:0; padding:0; line-height:1.5;">
@@ -68,6 +115,17 @@
         </div>
         <p style="color:#e5e7eb; margin-top:1.5rem; font-size:1.05rem; font-weight:500;">✓ Upload carrier letter  ✓ Get response that works  ✓ Download & send</p>
         <p style="color:#cbd5e1; margin-top:1rem; font-size:1rem; font-weight:500; max-width:700px; margin-left:auto; margin-right:auto;">You don't need to figure out what to say — the structure and positioning are handled for you.</p>
+      </div>
+    </section>
+
+    <!-- PLATFORM PREVIEW (dashboard / app screenshot) -->
+    <section class="platform-preview-section" aria-label="Platform preview">
+      <div class="dashboard-visual-wrapper">
+        <div class="platform-screenshot-container">
+          <img src="./images/platform-preview.png" width="1200" height="675" alt="Insurance Claim Response Pro dashboard and letter workflow" loading="lazy" decoding="async">
+        </div>
+        <h2 class="platform-callout-title">Your letter workflow, in one place</h2>
+        <p class="platform-callout-body">Upload the carrier’s letter, review the structured response outline, and download correspondence formatted for submission.</p>
       </div>
     </section>
 
