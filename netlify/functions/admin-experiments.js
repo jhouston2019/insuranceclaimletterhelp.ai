@@ -4,30 +4,10 @@
  */
 
 import { getSupabaseAdmin } from "./_supabase.js";
-
-// Verify admin session
-async function verifyAdminSession(token) {
-  if (!token) return null;
-
-  const supabase = getSupabaseAdmin();
-  const { data: session, error } = await supabase
-    .from('admin_sessions')
-    .select('*, admin_users(*)')
-    .eq('session_token', token)
-    .single();
-
-  if (error || !session) return null;
-  if (new Date(session.expires_at) < new Date()) return null;
-  if (!session.admin_users.is_active) return null;
-
-  return session.admin_users;
-}
+import { resolveAdminFromBearer } from "./_helpers/admin-verify-bearer.js";
 
 export async function handler(event) {
-  const authHeader = event.headers.authorization || '';
-  const token = authHeader.replace('Bearer ', '');
-
-  const adminUser = await verifyAdminSession(token);
+  const adminUser = resolveAdminFromBearer(event);
   if (!adminUser) {
     return {
       statusCode: 401,
