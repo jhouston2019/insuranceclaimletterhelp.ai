@@ -12,15 +12,43 @@
 const { getSupabaseAdmin } = require("./_supabase");
 const Stripe = require("stripe");
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+function isPaymentWallBypassed() {
+  return process.env.BYPASS_PAYMENT_WALL === "true";
+}
+
+function getStripe() {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) return null;
+  return new Stripe(key);
+}
 
 /**
  * Verify user has valid payment
  * @param {string} userId - User ID from auth
  * @param {string} email - User email
+ * @param {string|null} [documentId] - Current claim_letters row (used when payment wall is bypassed for testing)
  * @returns {Promise<object>} - Payment verification result
  */
-async function verifyPayment(userId, email) {
+async function verifyPayment(userId, email, documentId = null) {
+  if (isPaymentWallBypassed()) {
+    if (!userId && !email) {
+      return {
+        verified: false,
+        error: "No user identifier provided",
+      };
+    }
+    console.warn(
+      "[BYPASS_PAYMENT_WALL] Payment verification skipped — for local/staging test only. Unset BYPASS_PAYMENT_WALL in production."
+    );
+    return {
+      verified: true,
+      documentId: documentId || null,
+      paymentRecord: null,
+      canGenerate: true,
+      bypass: true,
+    };
+  }
+
   const supabase = getSupabaseAdmin();
   
   // Check database for paid status
@@ -64,7 +92,8 @@ async function verifyPayment(userId, email) {
   const paymentRecord = data[0];
 
   // Double-check with Stripe if session ID exists
-  if (paymentRecord.stripe_session_id) {
+  const stripe = getStripe();
+  if (stripe && paymentRecord.stripe_session_id) {
     try {
       const session = await stripe.checkout.sessions.retrieve(
         paymentRecord.stripe_session_id
@@ -146,7 +175,32 @@ async function canUpload(userId, email) {
  */
 async function canGenerateLetter(userId, documentId) {
   const supabase = getSupabaseAdmin();
-  
+
+  if (isPaymentWallBypassed()) {
+    const { data, error } = await supabase
+      .from("claim_letters")
+      .select("*")
+      .eq("id", documentId)
+      .eq("user_id", userId)
+      .single();
+
+    if (error || !data) {
+      return {
+        allowed: false,
+        reason: "Document not found or access denied",
+      };
+    }
+
+    console.warn(
+      "[BYPASS_PAYMENT_WALL] Generation allowed without paid status — test only."
+    );
+    return {
+      allowed: true,
+      document: data,
+      bypass: true,
+    };
+  }
+
   // Get document and verify ownership + payment
   const { data, error } = await supabase
     .from('claim_letters')
@@ -253,5 +307,6 @@ module.exports = {
   markPaymentUsed,
   canUpload,
   canGenerateLetter,
-  withPaymentEnforcement
+  withPaymentEnforcement,
+  isPaymentWallBypassed,
 };

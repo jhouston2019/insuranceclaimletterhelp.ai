@@ -51,11 +51,11 @@ exports.handler = async (event) => {
   }
 
   try {
-    const { filePath, fileName, classification, userId, email } = JSON.parse(event.body || "{}");
+    const { filePath, fileName, classification, userId, email, documentId } = JSON.parse(event.body || "{}");
     
     // PAYMENT VERIFICATION (SERVER-SIDE)
     console.log('Verifying payment for user:', userId || email);
-    const paymentVerification = await verifyPayment(userId, email);
+    const paymentVerification = await verifyPayment(userId, email, documentId);
     
     if (!paymentVerification.verified) {
       console.log('Payment verification failed:', paymentVerification.error);
