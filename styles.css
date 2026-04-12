@@ -1,0 +1,4 @@
+/* Shared baseline; most pages use inline styles. Exists so /styles.css is real CSS (not SPA fallback HTML). */
+:root {
+  color-scheme: light dark;
+}

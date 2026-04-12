@@ -156,34 +156,34 @@
 <body>
   <div class="login-container">
     <div class="login-header">
-      <h1>Admin Login</h1>
-      <p>Secure access to dashboard</p>
+      <h1>Admin login</h1>
+      <p>Access key and password</p>
     </div>
     
     <div id="errorMessage" class="error-message"></div>
     
     <form id="loginForm">
       <div class="form-group">
-        <label for="email">Email Address</label>
+        <label for="accessKey">Admin access key</label>
         <input 
-          type="email" 
-          id="email" 
-          name="email" 
+          type="password" 
+          id="accessKey" 
+          name="accessKey" 
           required 
-          autocomplete="username"
-          placeholder="admin@example.com"
+          autocomplete="off"
+          placeholder="Same value as ADMIN_ACCESS_KEY in Netlify"
         />
       </div>
       
       <div class="form-group">
-        <label for="password">Password</label>
+        <label for="password">Admin password</label>
         <input 
           type="password" 
           id="password" 
           name="password" 
           required 
           autocomplete="current-password"
-          placeholder="Enter your password"
+          placeholder="Your admin password"
         />
       </div>
       
@@ -200,6 +200,8 @@
     </div>
     
     <div class="back-link">
+      <a href="/admin-setup.html">First-time admin setup</a>
+      <span style="color:#475569;"> · </span>
       <a href="/">← Back to site</a>
     </div>
   </div>
@@ -220,11 +222,11 @@
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       
-      const email = document.getElementById('email').value.trim();
+      const accessKey = document.getElementById('accessKey').value;
       const password = document.getElementById('password').value;
       
-      if (!email || !password) {
-        showError('Please enter both email and password');
+      if (!accessKey || !password) {
+        showError('Enter admin access key and password');
         return;
       }
       
@@ -235,7 +237,7 @@
         const response = await fetch('/.netlify/functions/admin-login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password })
+          body: JSON.stringify({ accessKey, password })
         });
         
         const data = await response.json();
