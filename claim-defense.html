@@ -605,6 +605,7 @@ Phone: 1-800-555-0100`;
       f('fillDisputedAmount', a.amountDisputed);
       f('fillAdjusterName', a.adjusterName);
       f('fillInsurerAddress', a.insurerAddress || (a.insurerContactInfo && a.insurerContactInfo.address));
+      // leave fillName, fillAddress, fillCity, fillPhone, fillEmail blank — user must supply
     }
 
     function renderStrategyCards() {
@@ -839,35 +840,56 @@ Phone: 1-800-555-0100`;
     });
 
     document.getElementById('btnFillPh').addEventListener('click', () => {
+      const get = id => (document.getElementById(id)?.value || '').trim();
+      const name = get('fillName');
+      const address = get('fillAddress');
+      const city = get('fillCity');
+      const phone = get('fillPhone');
+      const email = get('fillEmail');
+      const claimNumber = get('fillClaimNumber');
+      const policyNumber = get('fillPolicyNumber');
+      const dateOfLoss = get('fillDateOfLoss');
+      const disputedAmount = get('fillDisputedAmount');
+      const insurerAddress = get('fillInsurerAddress');
+      const adjusterName = get('fillAdjusterName');
       const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-      const g = id => document.getElementById(id).value || '';
-      let t = document.getElementById('letterBody').innerText;
-      const map = [
-        [/\[DATE\]/gi, today],
-        [/\bDATE\b/g, today],
-        [/\[INSURED NAME[^\]]*\]/gi, g('fillName')],
-        [/\bINSURED NAME\b/g, g('fillName')],
-        [/\[ADDRESS[^\]]*\]/gi, g('fillAddress')],
-        [/\bADDRESS\b/g, g('fillAddress')],
-        [/\[CITY[^\]]*STATE[^\]]*ZIP[^\]]*\]/gi, g('fillCity')],
-        [/\bCITY[,\s]*STATE[,\s]*ZIP\b/gi, g('fillCity')],
-        [/\[PHONE[^\]]*\]/gi, g('fillPhone')],
-        [/\bPHONE\b/g, g('fillPhone')],
-        [/\[EMAIL[^\]]*\]/gi, g('fillEmail')],
-        [/\bEMAIL\b/g, g('fillEmail')],
-        [/\[CLAIM NUMBER[^\]]*\]/gi, g('fillClaimNumber')],
-        [/\[POLICY NUMBER[^\]]*\]/gi, g('fillPolicyNumber')],
-        [/\[DATE OF LOSS[^\]]*\]/gi, g('fillDateOfLoss')],
-        [/\[DISPUTED AMOUNT[^\]]*\]/gi, g('fillDisputedAmount')],
-        [/\[INSURER ADDRESS[^\]]*\]/gi, g('fillInsurerAddress')],
-        [/\[ADJUSTER NAME[^\]]*\]/gi, g('fillAdjusterName')],
-        [/\n?\[PRINTED NAME[^\]]*\]/gi, ''],
-        [/\[INSURED SIGNATURE[^\]]*\]/gi, g('fillName')],
-      ];
-      map.forEach(([re, val]) => { t = t.replace(re, val); });
-      t = t.replace(/\n{3,}/g, '\n\n').trim();
-      state.letterRaw = t;
-      document.getElementById('letterBody').innerHTML = highlightPlaceholders(t);
+
+      console.log('FILL VALUES:', { name, address, city, claimNumber, policyNumber, dateOfLoss, disputedAmount, insurerAddress, adjusterName });
+
+      const letterEl = document.getElementById('letterBody');
+      console.log('LETTER HTML (first 300):', letterEl.innerHTML.substring(0, 300));
+
+      const rawText = letterEl.innerText;
+      let html = rawText;
+
+      const r = (placeholder, value) => {
+        if (!value) return;
+        html = html.replace(new RegExp(placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), value);
+      };
+
+      r('[INSURED NAME]', name);
+      r('[PRINTED NAME]', name);
+      r('[INSURED SIGNATURE]', name);
+      r('[YOUR NAME]', name);
+      r('[ADDRESS]', address);
+      r('[CITY, STATE ZIP]', city);
+      r('[PHONE]', phone);
+      r('[EMAIL]', email);
+      r('[CLAIM NUMBER]', claimNumber);
+      r('[POLICY NUMBER]', policyNumber);
+      r('[DATE OF LOSS]', dateOfLoss);
+      r('[DISPUTED AMOUNT]', disputedAmount);
+      r('[INSURER ADDRESS]', insurerAddress);
+      r('[ADJUSTER NAME]', adjusterName);
+      r('[DATE]', today);
+
+      state.letterRaw = html;
+      const remaining = html.match(/\[[A-Z ,]+\]/g) || [];
+      if (remaining.length > 0) {
+        document.getElementById('letterBody').innerHTML = highlightPlaceholders(html);
+      } else {
+        document.getElementById('letterBody').innerText = html;
+      }
     });
 
     document.getElementById('btnCopy').addEventListener('click', async () => {
