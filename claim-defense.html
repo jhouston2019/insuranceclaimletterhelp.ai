@@ -612,6 +612,14 @@ Phone: 1-800-555-0100`;
 
     document.getElementById('btnDemo').addEventListener('click', () => {
       document.getElementById('claimText').value = DEMO_DENIAL;
+      document.getElementById('claimType').value = 'Property Damage (Wind/Hail/Water)';
+      document.getElementById('claimState').value = 'Georgia';
+      document.getElementById('policyNumber').value = 'HO-9847261';
+      document.getElementById('claimNumber').value = 'CLM-2024-847291';
+      document.getElementById('dateOfLoss').value = '2024-09-15';
+      document.getElementById('adjusterName').value = 'John Smith';
+      document.getElementById('disputedAmount').value = '$18,400';
+      document.getElementById('responseDeadline').value = '2024-10-30';
       state.fileBase64 = null;
       state.fileType = null;
       document.getElementById('fileNameDisplay').textContent = '';
