@@ -41,6 +41,20 @@
       height: auto;
       display: block;
     }
+    .platform-preview-section .workflow-steps-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+    }
+    .platform-preview-section .workflow-steps-grid img {
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    @media (max-width: 720px) {
+      .platform-preview-section .workflow-steps-grid {
+        grid-template-columns: 1fr;
+      }
+    }
     .platform-preview-section .platform-callout-title {
       color: #ffffff;
       text-align: center;
@@ -121,7 +135,12 @@
     <section class="platform-preview-section" aria-label="Platform preview">
       <div class="dashboard-visual-wrapper">
         <div class="platform-screenshot-container">
-          <img src="./images/platform-preview.png" width="1200" height="675" alt="Insurance Claim Response Pro dashboard and letter workflow" loading="lazy" decoding="async">
+          <div class="workflow-steps-grid" aria-label="Claim workflow in four steps: input, analysis, strategy, and letter">
+            <img src="/images/wizard-step1.png" width="1200" height="800" alt="Step 1: paste the carrier denial and claim details" loading="lazy" decoding="async">
+            <img src="/images/wizard-step2.png" width="1200" height="800" alt="Step 2: structured claim analysis with risk and dispute angles" loading="lazy" decoding="async">
+            <img src="/images/wizard-step3.png" width="1200" height="800" alt="Step 3: choose a response strategy" loading="lazy" decoding="async">
+            <img src="/images/wizard-step4.png" width="1200" height="800" alt="Step 4: dispute letter with downloads" loading="lazy" decoding="async">
+          </div>
         </div>
         <h2 class="platform-callout-title">Your letter workflow, in one place</h2>
         <p class="platform-callout-body">Upload the carrier’s letter, review the structured response outline, and download correspondence formatted for submission.</p>

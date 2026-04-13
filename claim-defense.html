@@ -31,6 +31,8 @@
       background: #fff; border: 1px solid var(--border); font-size: 0.8rem; color: #6b7280;
     }
     .progress .p.active { border-color: var(--navy); color: var(--navy); font-weight: 700; background: #eef2ff; }
+    .progress .p.p-clickable { cursor: pointer; }
+    .progress .p.p-clickable:hover { border-color: #94a3b8; background: #f8fafc; }
     .card {
       background: #fff; border: 1px solid var(--border); border-radius: 10px;
       padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,.06); margin-bottom: 20px;
@@ -332,6 +334,7 @@
       </div>
 
       <div class="btn-row" style="margin-top:20px;">
+        <button type="button" class="btn btn-secondary" id="btnBack4">← Back to strategy</button>
         <button type="button" class="btn btn-secondary" id="btnCopy">Copy letter</button>
         <button type="button" class="btn btn-secondary" id="btnPdf">Download PDF</button>
         <button type="button" class="btn btn-secondary" id="btnDocx">Download Word</button>
@@ -427,7 +430,28 @@ Phone: 1-800-555-0100`;
       el.classList.toggle('show', !!msg);
     }
 
+    function canNavigateToStep(n) {
+      if (n === 1) return true;
+      if (n === 2 || n === 3) return !!state.analysis;
+      if (n === 4) return !!(state.letterRaw && String(state.letterRaw).trim());
+      return false;
+    }
+
+    function updateProgressNav() {
+      document.querySelectorAll('#progressBar .p').forEach(p => {
+        const stepNum = Number(p.dataset.s);
+        const ok = canNavigateToStep(stepNum);
+        p.classList.toggle('p-clickable', ok);
+        p.title = ok ? ('Go to step ' + stepNum + (stepNum === 1 ? ' (input)' : stepNum === 2 ? ' (analysis)' : stepNum === 3 ? ' (strategy)' : ' (letter)')) : '';
+      });
+    }
+
     function setStep(n) {
+      const prev = state.step;
+      if (prev === 4 && n !== 4) {
+        const lb = document.getElementById('letterBody');
+        if (lb) state.letterRaw = lb.innerText;
+      }
       state.step = n;
       document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
       document.getElementById('step' + n).classList.add('active');
@@ -439,6 +463,7 @@ Phone: 1-800-555-0100`;
         noteEl.textContent = 'This letter is a starting point. For complex denials, bad faith situations, or claims exceeding $25,000, consider having a licensed public adjuster or insurance attorney review before sending.';
         noteEl.style.display = 'block';
       }
+      updateProgressNav();
     }
 
     function showLoading(id, on, text) {
@@ -948,6 +973,24 @@ Phone: 1-800-555-0100`;
     });
     document.getElementById('btnBack3').addEventListener('click', () => setStep(2));
 
+    document.getElementById('btnBack4').addEventListener('click', () => {
+      showErr('step4Error', '');
+      setStep(3);
+    });
+
+    document.getElementById('progressBar').addEventListener('click', (e) => {
+      const p = e.target.closest('.p');
+      if (!p || !p.classList.contains('p-clickable')) return;
+      const target = Number(p.dataset.s);
+      if (!canNavigateToStep(target)) return;
+      showErr('step1Error', '');
+      showErr('step2Error', '');
+      showErr('step3Error', '');
+      showErr('step4Error', '');
+      setStep(target);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
     document.getElementById('btnGenerate').addEventListener('click', async () => {
       showErr('step3Error', '');
       const additional = state.strategy === 'other'
@@ -1127,7 +1170,7 @@ Phone: 1-800-555-0100`;
     document.getElementById('btnStartOver').addEventListener('click', () => {
       if (!confirm('Clear all data and return to step 1?')) return;
       Object.assign(state, {
-        step: 1, fileBase64: null, fileType: null, analysis: null,
+        fileBase64: null, fileType: null, analysis: null,
         strategy: null, letterRaw: '', editing: false, prefillApplied: false,
       });
       document.querySelectorAll('input,textarea,select').forEach(el => {
@@ -1148,6 +1191,7 @@ Phone: 1-800-555-0100`;
 
     await boot();
     syncAnalyzeBtn();
+    updateProgressNav();
   </script>
 </body>
 </html>
