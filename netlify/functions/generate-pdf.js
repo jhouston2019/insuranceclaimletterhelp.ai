@@ -15,9 +15,18 @@ exports.handler = async (event) => {
   }
 
   try {
-    const { text, fileName = 'response-letter.pdf' } = JSON.parse(event.body || '{}');
-    
-    if (!text) {
+    const {
+      text,
+      fileName = 'response-letter.pdf',
+      certifiedMailHeader,
+    } = JSON.parse(event.body || '{}');
+
+    const headerBlock = certifiedMailHeader
+      ? 'SENT VIA CERTIFIED MAIL — RETURN RECEIPT REQUESTED\n\n'
+      : '';
+    const mergedText = headerBlock + (text || '');
+
+    if (!mergedText.trim()) {
       return {
         statusCode: 400,
         headers: {
@@ -44,7 +53,7 @@ exports.handler = async (event) => {
     
     // Split text into lines that fit the page width
     const lines = [];
-    const words = text.split(' ');
+    const words = mergedText.split(' ');
     let currentLine = '';
     
     for (const word of words) {

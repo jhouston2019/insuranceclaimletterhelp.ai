@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="supabase-url" content="%%SUPABASE_URL%%" />
+  <meta name="supabase-anon-key" content="%%SUPABASE_ANON_KEY%%" />
+  <title>Insurance Claim Defense</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    if (typeof pdfjsLib !== 'undefined') {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+  </script>
+  <style>
+    :root { --navy: #0f1e35; --gray: #f3f4f6; --border: #d1d5db; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--gray); font-family: system-ui, sans-serif; color: #111; }
+    h1, h2, h3, .serif { font-family: Georgia, 'Times New Roman', serif; }
+    .topnav {
+      background: var(--navy); color: #fff; padding: 14px 24px;
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;
+    }
+    .topnav .brand { font-family: Georgia, serif; font-size: 1.25rem; font-weight: 700; }
+    .topnav a { color: #e5e7eb; text-decoration: none; margin-left: 16px; font-size: 0.95rem; }
+    .topnav a:hover { text-decoration: underline; }
+    .wrap { max-width: 960px; margin: 0 auto; padding: 20px 16px 48px; }
+    .progress { display: flex; gap: 8px; margin-bottom: 24px; }
+    .progress .p {
+      flex: 1; text-align: center; padding: 10px 6px; border-radius: 8px;
+      background: #fff; border: 1px solid var(--border); font-size: 0.8rem; color: #6b7280;
+    }
+    .progress .p.active { border-color: var(--navy); color: var(--navy); font-weight: 700; background: #eef2ff; }
+    .card {
+      background: #fff; border: 1px solid var(--border); border-radius: 10px;
+      padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,.06); margin-bottom: 20px;
+    }
+    .step { display: none; }
+    .step.active { display: block; }
+    label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.9rem; }
+    textarea, input[type="text"], input[type="date"], select {
+      width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.95rem;
+    }
+    #claimText { min-height: 220px; font-family: 'Courier New', monospace; }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 640px) { .row2 { grid-template-columns: 1fr; } }
+    .btn {
+      display: inline-block; padding: 12px 20px; border-radius: 8px; border: none; cursor: pointer;
+      font-weight: 600; font-size: 0.95rem;
+    }
+    .btn-primary { background: var(--navy); color: #fff; }
+    .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-secondary { background: #e5e7eb; color: #111; margin-right: 10px; }
+    .btn-row { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    .muted { color: #6b7280; font-size: 0.85rem; }
+    .error-inline { color: #b91c1c; font-size: 0.9rem; margin-top: 10px; display: none; }
+    .error-inline.show { display: block; }
+    .loading {
+      display: none; position: fixed; inset: 0; background: rgba(15,30,53,.35); z-index: 50;
+      align-items: center; justify-content: center; flex-direction: column;
+    }
+    .loading.show { display: flex; }
+    .spinner {
+      width: 44px; height: 44px; border: 4px solid #e5e7eb; border-top-color: var(--navy);
+      border-radius: 50%; animation: spin 0.9s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .auth-banner {
+      background: #fef3c7; border: 1px solid #f59e0b; color: #92400e; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px;
+    }
+    .dropzone {
+      border: 2px dashed var(--border); border-radius: 10px; padding: 24px; text-align: center; cursor: pointer; background: #fafafa;
+    }
+    .dropzone.drag { border-color: var(--navy); background: #eef2ff; }
+    .amber { background: #fffbeb; border: 1px solid #fbbf24; padding: 12px; border-radius: 8px; color: #92400e; margin-top: 12px; }
+    .analysis-bar {
+      background: var(--navy); color: #fff; padding: 16px 20px; border-radius: 10px 10px 0 0;
+      display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px;
+    }
+    .risk-pill { padding: 6px 14px; border-radius: 999px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; }
+    .risk-low { background: #22c55e; color: #fff; }
+    .risk-moderate { background: #f59e0b; color: #111; }
+    .risk-high, .risk-critical { background: #dc2626; color: #fff; }
+    .risk-critical.pulse { animation: pulse 1.5s ease-in-out infinite; }
+    @keyframes pulse { 50% { opacity: 0.85; transform: scale(1.02); } }
+    .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 16px 0; }
+    @media (max-width: 800px) { .metrics { grid-template-columns: repeat(2, 1fr); } }
+    .metric { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+    .metric .v { font-weight: 700; font-size: 1rem; margin-top: 4px; }
+    .metric .v.warn { color: #dc2626; }
+    .section-title { font-family: Georgia, serif; margin: 20px 0 10px; font-size: 1.1rem; }
+    .proc-list li { margin: 8px 0; }
+    .strategy-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    @media (max-width: 900px) { .strategy-grid { grid-template-columns: 1fr; } }
+    .strat-card {
+      border: 2px solid var(--border); border-radius: 10px; padding: 14px; cursor: pointer; text-align: left; background: #fff;
+    }
+    .strat-card.selected { border-color: var(--navy); box-shadow: 0 0 0 1px var(--navy); }
+    .strat-card .rec { display: none; font-size: 0.7rem; background: #fbbf24; color: #111; padding: 2px 8px; border-radius: 4px; margin-bottom: 6px; font-weight: 700; }
+    .strat-card.recommended .rec { display: inline-block; }
+    #letterBody {
+      font-family: 'Courier New', monospace; white-space: pre-wrap; background: #fff; border: 1px solid var(--border);
+      border-radius: 8px; padding: 20px; min-height: 320px; font-size: 0.9rem; line-height: 1.45;
+    }
+    #letterBody .ph { background: #fef3c7; padding: 0 2px; }
+    .critical-msg { font-size: 0.75rem; margin-top: 6px; color: #fecaca; max-width: 220px; }
+  </style>
+</head>
+<body>
+  <nav class="topnav">
+    <div class="brand">Insurance Claim Defense</div>
+    <div>
+      <a href="/">Home</a>
+      <a href="/pricing.html">Pricing</a>
+      <a href="/login.html">Sign in</a>
+      <a href="/payment.html">Purchase access</a>
+    </div>
+  </nav>
+
+  <div class="wrap">
+    <div class="progress" id="progressBar">
+      <div class="p active" data-s="1">1. Input</div>
+      <div class="p" data-s="2">2. Analysis</div>
+      <div class="p" data-s="3">3. Strategy</div>
+      <div class="p" data-s="4">4. Letter</div>
+    </div>
+
+    <div id="authBanner" class="auth-banner" style="display:none;">
+      Sign in to use the analyzer with your account, or configure Supabase meta tags / set <code>WIZARD_ALLOW_BYPASS=true</code> for local testing.
+      <a href="/login.html">Sign in</a>
+    </div>
+
+    <!-- Step 1 -->
+    <div class="step active card" id="step1">
+      <h2 class="serif">Claim input</h2>
+      <p class="muted">Paste your denial or underpayment letter, or upload a PDF, image, or text file.</p>
+
+      <label for="claimText">Paste your denial letter here</label>
+      <textarea id="claimText" placeholder="Paste the full text of your insurance denial, underpayment, or dispute letter..."></textarea>
+
+      <label style="margin-top:16px;">Upload file</label>
+      <div class="dropzone" id="dropzone">
+        <input type="file" id="fileInput" accept=".pdf,.jpg,.jpeg,.png,.txt" style="display:none" />
+        <span id="dropLabel">Click or drag PDF, JPG, PNG, or TXT</span>
+        <div class="muted" id="fileNameDisplay" style="margin-top:8px;"></div>
+      </div>
+      <div id="pdfShortWarn" class="amber" style="display:none;"></div>
+
+      <div class="row2" style="margin-top:16px;">
+        <div>
+          <label for="claimType">Claim type</label>
+          <select id="claimType">
+            <option value="">— Select —</option>
+            <option>Property Damage (Wind/Hail/Water)</option>
+            <option>Auto / Total Loss</option>
+            <option>Health Insurance</option>
+            <option>Business Interruption</option>
+            <option>Disability</option>
+            <option>Life Insurance</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div>
+          <label for="claimState">State</label>
+          <select id="claimState"></select>
+        </div>
+      </div>
+      <div class="row2">
+        <div>
+          <label for="policyNumber">Policy number</label>
+          <input type="text" id="policyNumber" placeholder="e.g. HO-9847261" />
+        </div>
+        <div>
+          <label for="claimNumber">Claim number</label>
+          <input type="text" id="claimNumber" placeholder="e.g. CLM-2024-847291" />
+        </div>
+      </div>
+      <div class="row2">
+        <div>
+          <label for="dateOfLoss">Date of loss</label>
+          <input type="text" id="dateOfLoss" placeholder="e.g. January 15, 2024" />
+        </div>
+        <div>
+          <label for="adjusterName">Adjuster name</label>
+          <input type="text" id="adjusterName" placeholder="e.g. John Smith" />
+        </div>
+      </div>
+      <div class="row2">
+        <div>
+          <label for="disputedAmount">Disputed amount</label>
+          <input type="text" id="disputedAmount" placeholder="e.g. $14,800.00" />
+        </div>
+        <div>
+          <label for="responseDeadline">Response deadline</label>
+          <input type="text" id="responseDeadline" placeholder="e.g. October 30, 2024" />
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button type="button" class="btn btn-secondary" id="btnDemo">Load demo denial letter</button>
+        <button type="button" class="btn btn-primary" id="btnAnalyze" disabled>Analyze My Claim</button>
+      </div>
+      <div id="step1Error" class="error-inline"></div>
+      <p class="muted" style="margin-top:16px;">
+        This tool generates draft correspondence for informational purposes only. It does not constitute legal advice and does not create an attorney-client relationship.
+        For complex matters or claims exceeding $25,000, consult a licensed public adjuster or attorney.
+      </p>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="step card" id="step2" style="padding:0;overflow:hidden;">
+      <div class="analysis-bar">
+        <div>
+          <div class="muted" style="color:#cbd5e1;font-size:0.8rem;">Analysis</div>
+          <div class="serif" style="font-size:1.35rem;" id="analysisTitle">—</div>
+        </div>
+        <div style="text-align:right;">
+          <span id="riskBadge" class="risk-pill risk-moderate">—</span>
+          <div id="criticalExtra" class="critical-msg" style="display:none;">Download letter and consult a professional</div>
+        </div>
+      </div>
+      <div style="padding:20px;">
+        <div class="metrics" id="metricsRow"></div>
+        <h3 class="section-title">What the insurer is claiming</h3>
+        <p id="plainEnglish"></p>
+        <p class="muted" id="whatIfIgnored" style="font-style:italic;"></p>
+
+        <h3 class="section-title">Procedural defects identified</h3>
+        <div class="amber">
+          <strong>These gaps weaken the insurer's position</strong>
+          <ul class="proc-list" id="procList"></ul>
+        </div>
+
+        <h3 class="section-title">Strongest dispute angles</h3>
+        <ul id="winList"></ul>
+
+        <h3 class="section-title">What must be addressed in your response</h3>
+        <ul id="keyList"></ul>
+
+        <h3 class="section-title">Gather these before responding</h3>
+        <ul id="docList"></ul>
+
+        <h3 class="section-title">Escalation options</h3>
+        <ol id="escList"></ol>
+
+        <p class="muted" style="margin-top:20px;">This tool does not constitute legal advice. Review all deadlines and rights carefully.</p>
+        <div class="btn-row">
+          <button type="button" class="btn btn-secondary" id="btnBack2">← Back</button>
+          <button type="button" class="btn btn-primary" id="btnToStrategy">Choose Your Response Strategy →</button>
+        </div>
+        <div id="step2Error" class="error-inline"></div>
+      </div>
+    </div>
+
+    <!-- Step 3 -->
+    <div class="step card" id="step3">
+      <h2 class="serif">Response strategy</h2>
+      <p class="muted">Select one approach. The recommended option reflects your claim analysis.</p>
+      <div class="strategy-grid" id="strategyGrid"></div>
+      <div id="customWrap" style="display:none;margin-top:16px;">
+        <label for="customStrategyText">Describe your approach</label>
+        <textarea id="customStrategyText" rows="5" placeholder="e.g. The insurer applied the wear and tear exclusion without providing any engineering report or moisture testing..."></textarea>
+      </div>
+      <div class="btn-row" style="margin-top:20px;">
+        <button type="button" class="btn btn-secondary" id="btnBack3">← Back</button>
+        <button type="button" class="btn btn-primary" id="btnGenerate" disabled>Generate My Dispute Letter →</button>
+      </div>
+      <div id="step3Detail" class="muted" style="margin-top:16px;display:none;"></div>
+      <div id="step3Error" class="error-inline"></div>
+    </div>
+
+    <!-- Step 4 -->
+    <div class="step card" id="step4">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
+        <h2 class="serif" id="letterTitleBar" style="margin:0;">Your Insurance Dispute Letter</h2>
+        <button type="button" class="btn btn-secondary" id="btnEditToggle">Edit letter</button>
+      </div>
+      <div id="letterBody" contenteditable="false"></div>
+
+      <h3 class="section-title">Fill placeholders</h3>
+      <p class="muted">Complete your details. [DATE] defaults to today.</p>
+      <input type="hidden" id="fillDate" />
+      <div class="row2">
+        <div><label for="fillName">Full name (insured)</label><input type="text" id="fillName" /></div>
+        <div><label for="fillAddress">Street address</label><input type="text" id="fillAddress" /></div>
+      </div>
+      <div class="row2">
+        <div><label for="fillCity">City, State ZIP</label><input type="text" id="fillCity" /></div>
+        <div><label for="fillPhone">Phone</label><input type="text" id="fillPhone" /></div>
+      </div>
+      <div class="row2">
+        <div><label for="fillEmail">Email</label><input type="text" id="fillEmail" /></div>
+        <div><label for="fillClaimNumber">Claim number</label><input type="text" id="fillClaimNumber" /></div>
+      </div>
+      <div class="row2">
+        <div><label for="fillPolicyNumber">Policy number</label><input type="text" id="fillPolicyNumber" /></div>
+        <div><label for="fillDateOfLoss">Date of loss</label><input type="text" id="fillDateOfLoss" /></div>
+      </div>
+      <div class="row2">
+        <div><label for="fillDisputedAmount">Disputed amount</label><input type="text" id="fillDisputedAmount" /></div>
+        <div><label for="fillInsurerAddress">Insurer address</label><input type="text" id="fillInsurerAddress" /></div>
+      </div>
+      <div class="row2">
+        <div><label for="fillAdjusterName">Adjuster name</label><input type="text" id="fillAdjusterName" /></div>
+        <div></div>
+      </div>
+      <div class="btn-row">
+        <button type="button" class="btn btn-primary" id="btnFillPh">Fill placeholders</button>
+      </div>
+
+      <div class="btn-row" style="margin-top:20px;">
+        <button type="button" class="btn btn-secondary" id="btnCopy">Copy letter</button>
+        <button type="button" class="btn btn-secondary" id="btnPdf">Download PDF</button>
+        <button type="button" class="btn btn-secondary" id="btnDocx">Download Word</button>
+        <button type="button" class="btn btn-secondary" id="btnStartOver">Start over</button>
+      </div>
+      <div id="step4Error" class="error-inline"></div>
+      <div class="amber" style="margin-top:16px;">
+        This letter is a starting point. For complex denials, bad faith situations, or claims exceeding $25,000, consider having a licensed public adjuster or insurance attorney review before sending.
+      </div>
+      <p class="muted" style="margin-top:12px;">
+        This tool does not constitute legal advice and does not create an attorney-client relationship. It is not a substitute for a licensed public adjuster or insurance attorney in complex matters.
+      </p>
+    </div>
+  </div>
+
+  <div class="loading" id="step1Loading"><div class="spinner"></div><p id="step1LoadingText" style="color:#fff;font-weight:600;">Working…</p></div>
+  <div class="loading" id="step3Loading"><div class="spinner"></div><p style="color:#fff;font-weight:600;">Generating letter…</p></div>
+  <div class="loading" id="step4Loading"><div class="spinner"></div><p style="color:#fff;font-weight:600;">Building PDF…</p></div>
+
+  <script type="module">
+    const DEMO_DENIAL = `ACME INSURANCE COMPANY
+Claims Department
+123 Insurance Plaza
+Dallas, TX 75201
+
+Claim Number: CLM-2024-847291
+Policy Number: HO-9847261
+Date of Loss: September 15, 2024
+Insured: [Policyholder Name]
+
+RE: NOTICE OF CLAIM DETERMINATION
+
+Dear Policyholder,
+
+We have completed our investigation of the above-referenced
+claim for property damage to your residence located at
+[Property Address].
+
+After careful review of the damages reported and inspection
+of the property, we have determined the following:
+
+COVERED DAMAGES: $4,200.00
+DEPRECIATION: $1,890.00
+DEDUCTIBLE: $2,500.00
+NET CLAIM PAYMENT: $0.00
+
+BASIS FOR DETERMINATION:
+The observed damage to your roof is consistent with normal
+wear and tear and gradual deterioration over time, which is
+excluded under Section III, Exclusion B of your policy.
+Additionally, several items claimed were not observed during
+our inspection.
+
+The wind damage you reported could not be verified as the
+proximate cause of loss. Our inspector noted the shingles
+showed signs of age-related deterioration predating the
+reported storm event of September 15, 2024.
+
+If you disagree with this determination, you have the right
+to request a re-inspection within 30 days.
+
+Sincerely,
+John Smith
+Senior Claims Adjuster
+ACME Insurance Company
+Phone: 1-800-555-0100`;
+
+    const US_STATES = [
+      'Alabama','Alaska','Arizona','Arkansas','California','Colorado','Connecticut','Delaware',
+      'District of Columbia','Florida','Georgia','Hawaii','Idaho','Illinois','Indiana','Iowa',
+      'Kansas','Kentucky','Louisiana','Maine','Maryland','Massachusetts','Michigan','Minnesota',
+      'Mississippi','Missouri','Montana','Nebraska','Nevada','New Hampshire','New Jersey','New Mexico',
+      'New York','North Carolina','North Dakota','Ohio','Oklahoma','Oregon','Pennsylvania',
+      'Rhode Island','South Carolina','South Dakota','Tennessee','Texas','Utah','Vermont','Virginia',
+      'Washington','West Virginia','Wisconsin','Wyoming'
+    ];
+
+    const state = {
+      step: 1,
+      accessToken: null,
+      fileBase64: null,
+      fileType: null,
+      analysis: null,
+      strategy: null,
+      letterRaw: '',
+      editing: false,
+    };
+
+    function showErr(id, msg) {
+      const el = document.getElementById(id);
+      el.textContent = msg || '';
+      el.classList.toggle('show', !!msg);
+    }
+
+    function setStep(n) {
+      state.step = n;
+      document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+      document.getElementById('step' + n).classList.add('active');
+      document.querySelectorAll('.progress .p').forEach(p => {
+        p.classList.toggle('active', Number(p.dataset.s) === n);
+      });
+    }
+
+    function showLoading(id, on, text) {
+      const el = document.getElementById(id);
+      el.classList.toggle('show', on);
+      const t = document.getElementById(id.replace('Loading', 'LoadingText'));
+      if (t && text) t.textContent = text;
+    }
+
+    async function wizardFetch(url, options = {}) {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 30000);
+      try {
+        const headers = new Headers(options.headers || {});
+        headers.set('Authorization', 'Bearer ' + state.accessToken);
+        if (options.body && !headers.has('Content-Type')) {
+          headers.set('Content-Type', 'application/json');
+        }
+        return await fetch(url, { ...options, headers, signal: ctrl.signal });
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    async function boot() {
+      const urlMeta = document.querySelector('meta[name="supabase-url"]')?.content?.trim() || '';
+      const keyMeta = document.querySelector('meta[name="supabase-anon-key"]')?.content?.trim() || '';
+      const can = urlMeta && keyMeta && !urlMeta.includes('%%') && !keyMeta.includes('%%');
+      if (can) {
+        const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+        const supabase = createClient(urlMeta, keyMeta);
+        const { data: { session } } = await supabase.auth.getSession();
+        state.accessToken = session?.access_token ?? null;
+      } else {
+        state.accessToken = 'bypass';
+      }
+      document.getElementById('authBanner').style.display = state.accessToken ? 'none' : 'block';
+    }
+
+    function syncAnalyzeBtn() {
+      const t = document.getElementById('claimText').value.trim();
+      document.getElementById('btnAnalyze').disabled = !(t.length > 0 || state.fileBase64);
+    }
+
+    function daysUntilDeadline(str) {
+      if (!str || str === 'Not specified') return null;
+      const d = new Date(str);
+      if (isNaN(d)) return null;
+      return Math.ceil((d - new Date()) / (1000 * 60 * 60 * 24));
+    }
+
+    function renderStep2() {
+      const a = state.analysis;
+      if (!a) return;
+      document.getElementById('analysisTitle').textContent =
+        (a.claimType || 'Claim') + ' · ' + (a.insurerName || 'Insurer');
+      const rl = (a.riskLevel || 'moderate').toLowerCase();
+      const badge = document.getElementById('riskBadge');
+      badge.textContent = rl;
+      const riskClass = rl === 'low' ? 'low' : rl === 'moderate' ? 'moderate' : rl === 'critical' ? 'critical' : 'high';
+      badge.className = 'risk-pill risk-' + riskClass;
+      const crit = document.getElementById('criticalExtra');
+      if (rl === 'critical') {
+        badge.classList.add('pulse');
+        crit.style.display = 'block';
+      } else {
+        badge.classList.remove('pulse');
+        crit.style.display = 'none';
+      }
+
+      const amt = a.amountDisputed || '—';
+      const dl = a.responseDeadline || 'Not specified';
+      const days = daysUntilDeadline(dl);
+      let dlClass = '';
+      let dlNote = '';
+      if (days !== null) {
+        if (days < 0) { dlClass = 'warn'; dlNote = 'Past due — respond immediately'; }
+        else if (days < 14) { dlClass = 'warn'; dlNote = days + ' days remaining'; }
+      }
+      const disputedClass = (amt && amt !== 'Not specified' && amt !== '$0') ? 'warn' : '';
+
+      document.getElementById('metricsRow').innerHTML =
+        '<div class="metric"><div class="muted">Claim Type</div><div class="v">' + escapeHtml(a.claimType || '—') + '</div></div>' +
+        '<div class="metric"><div class="muted">Amount Disputed</div><div class="v ' + disputedClass + '">' + escapeHtml(amt) + '</div></div>' +
+        '<div class="metric"><div class="muted">Response Deadline</div><div class="v ' + dlClass + '">' + escapeHtml(dl) +
+        (dlNote ? '<div class="muted" style="font-size:0.75rem">' + escapeHtml(dlNote) + '</div>' : '') + '</div></div>' +
+        '<div class="metric"><div class="muted">Risk Level</div><div class="v">' + escapeHtml(rl) + '</div></div>';
+
+      document.getElementById('plainEnglish').textContent = a.plainEnglish || '';
+      document.getElementById('whatIfIgnored').textContent = a.whatHappensIfIgnored || '';
+
+      const proc = document.getElementById('procList');
+      proc.innerHTML = '';
+      (a.proceduralDefects || []).forEach(x => {
+        const li = document.createElement('li');
+        li.textContent = '⚠ ' + x;
+        proc.appendChild(li);
+      });
+
+      const wl = document.getElementById('winList');
+      wl.innerHTML = '';
+      (a.winningAngles || []).forEach(x => {
+        const li = document.createElement('li');
+        li.textContent = '✓ ' + x;
+        wl.appendChild(li);
+      });
+
+      const kl = document.getElementById('keyList');
+      kl.innerHTML = '';
+      (a.keyIssuesToAddress || []).forEach(x => {
+        const li = document.createElement('li');
+        li.textContent = '☐ ' + x;
+        kl.appendChild(li);
+      });
+
+      const dl2 = document.getElementById('docList');
+      dl2.innerHTML = '';
+      (a.documentationNeeded || []).forEach(x => {
+        const li = document.createElement('li');
+        li.textContent = '📄 ' + x;
+        dl2.appendChild(li);
+      });
+
+      const es = document.getElementById('escList');
+      es.innerHTML = '';
+      (a.escalationLadder || []).forEach((x, i) => {
+        const li = document.createElement('li');
+        li.textContent = x;
+        es.appendChild(li);
+      });
+    }
+
+    function escapeHtml(s) {
+      const d = document.createElement('div');
+      d.textContent = s;
+      return d.innerHTML;
+    }
+
+    function highlightPlaceholders(text) {
+      let html = escapeHtml(text || '');
+      html = html.replace(/(\[[^\]]{3,80}\])/g, '<span class="ph">$1</span>');
+      return html;
+    }
+
+    function prefillFillFields() {
+      const a = state.analysis;
+      if (!a) return;
+      const set = (id, v) => {
+        const el = document.getElementById(id);
+        if (el && !el.value && v && v !== 'Not specified') el.value = v;
+      };
+      set('fillClaimNumber', a.claimNumber);
+      set('fillPolicyNumber', a.policyNumber);
+      set('fillDateOfLoss', a.dateOfLoss);
+      if (a.amountDisputed && a.amountDisputed !== 'Not specified') set('fillDisputedAmount', a.amountDisputed);
+      set('fillInsurerAddress', a.insurerContactInfo && a.insurerContactInfo.address);
+      set('fillAdjusterName', a.adjusterName);
+    }
+
+    function renderStrategyCards() {
+      const a = state.analysis;
+      const grid = document.getElementById('strategyGrid');
+      grid.innerHTML = '';
+      const list = a.availableStrategies || [];
+      list.forEach(s => {
+        const div = document.createElement('div');
+        div.className = 'strat-card' + (s.recommended ? ' recommended' : '');
+        div.dataset.id = s.id;
+        div.innerHTML =
+          (s.recommended ? '<span class="rec">RECOMMENDED</span><br>' : '') +
+          '<strong>' + escapeHtml(s.title) + '</strong><br><span class="muted">' + escapeHtml(s.subtitle) + '</span>' +
+          '<p style="font-size:0.85rem;margin:8px 0">' + escapeHtml(s.description) + '</p>' +
+          '<span class="muted">Risk: ' + escapeHtml(s.risk) + '</span><br><span class="muted">Outcome: ' + escapeHtml(s.outcome || '') + '</span>';
+        div.addEventListener('click', () => {
+          document.querySelectorAll('.strat-card').forEach(c => c.classList.remove('selected'));
+          div.classList.add('selected');
+          state.strategy = s.id;
+          document.getElementById('btnGenerate').disabled = false;
+          document.getElementById('customWrap').style.display = s.id === 'other' ? 'block' : 'none';
+          const det = document.getElementById('step3Detail');
+          det.style.display = 'block';
+          det.innerHTML =
+            '<strong>Why this strategy:</strong> ' + escapeHtml(a.recommendedStrategyRationale || '') +
+            '<br><strong>Regulatory basis:</strong> ' + escapeHtml((a.regulatoryDutiesToCite || []).join('; ')) +
+            '<br><strong>Policy provisions:</strong> ' + escapeHtml((a.policyProvisionsToInvoke || []).join('; ')) +
+            '<br><em>Gather documents listed in analysis before sending.</em>';
+        });
+        grid.appendChild(div);
+      });
+      const rec = (a.recommendedStrategy || '').toLowerCase();
+      const card = grid.querySelector('[data-id="' + rec + '"]');
+      if (card) card.click();
+    }
+
+    document.getElementById('claimState').innerHTML =
+      '<option value="">— Unknown/Not sure —</option>' +
+      US_STATES.map(s => '<option>' + s + '</option>').join('');
+
+    document.getElementById('claimText').addEventListener('input', syncAnalyzeBtn);
+
+    document.getElementById('btnDemo').addEventListener('click', () => {
+      document.getElementById('claimText').value = DEMO_DENIAL;
+      state.fileBase64 = null;
+      state.fileType = null;
+      document.getElementById('fileNameDisplay').textContent = '';
+      syncAnalyzeBtn();
+    });
+
+    const dz = document.getElementById('dropzone');
+    const fi = document.getElementById('fileInput');
+    dz.addEventListener('click', () => fi.click());
+    dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag'); });
+    dz.addEventListener('dragleave', () => dz.classList.remove('drag'));
+    dz.addEventListener('drop', e => {
+      e.preventDefault();
+      dz.classList.remove('drag');
+      if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+    });
+    fi.addEventListener('change', () => {
+      if (fi.files[0]) handleFile(fi.files[0]);
+    });
+
+    async function handleFile(file) {
+      document.getElementById('fileNameDisplay').textContent = file.name;
+      const ext = file.name.split('.').pop().toLowerCase();
+      state.fileType = file.type || '';
+      document.getElementById('pdfShortWarn').style.display = 'none';
+      if (ext === 'txt') {
+        const text = await file.text();
+        document.getElementById('claimText').value = text;
+        state.fileBase64 = null;
+        syncAnalyzeBtn();
+        return;
+      }
+      if (ext === 'pdf') {
+        const buf = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+        let full = '';
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          full += content.items.map(it => it.str).join(' ') + '\n';
+        }
+        full = full.trim();
+        if (full.length > 50) {
+          document.getElementById('claimText').value = full;
+          state.fileBase64 = null;
+          if (full.length < 300) {
+            const w = document.getElementById('pdfShortWarn');
+            w.style.display = 'block';
+            w.textContent = 'Extracted text is short — please confirm details in the fields below.';
+          }
+        } else {
+          const b64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+          state.fileBase64 = b64;
+          state.fileType = 'application/pdf';
+        }
+        syncAnalyzeBtn();
+        return;
+      }
+      if (['jpg','jpeg','png'].includes(ext)) {
+        state.fileBase64 = await new Promise((resolve, reject) => {
+          const r = new FileReader();
+          r.onload = () => resolve(String(r.result).split(',')[1] || '');
+          r.onerror = reject;
+          r.readAsDataURL(file);
+        });
+        state.fileType = file.type || 'image/' + (ext === 'jpg' ? 'jpeg' : ext);
+        syncAnalyzeBtn();
+      }
+    }
+
+    document.getElementById('btnAnalyze').addEventListener('click', async () => {
+      showErr('step1Error', '');
+      if (state.accessToken === null) {
+        showErr('step1Error', 'Sign in or enable wizard access to continue.');
+        return;
+      }
+      const text = document.getElementById('claimText').value.trim();
+      if (!text && !state.fileBase64) {
+        showErr('step1Error', 'Paste letter text or upload a file.');
+        return;
+      }
+      showLoading('step1Loading', true, 'Analyzing claim…');
+      try {
+        const res = await wizardFetch('/.netlify/functions/analyze-claim', {
+          method: 'POST',
+          body: JSON.stringify({
+            text,
+            fileBase64: state.fileBase64,
+            fileType: state.fileType,
+            claimType: document.getElementById('claimType').value,
+            claimState: document.getElementById('claimState').value,
+            policyNumber: document.getElementById('policyNumber').value,
+            claimNumber: document.getElementById('claimNumber').value,
+            dateOfLoss: document.getElementById('dateOfLoss').value,
+            adjusterName: document.getElementById('adjusterName').value,
+            disputedAmount: document.getElementById('disputedAmount').value,
+            responseDeadline: document.getElementById('responseDeadline').value,
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          showErr('step1Error', data.error || 'Analysis failed.');
+          return;
+        }
+        state.analysis = data.analysis;
+        renderStep2();
+        setStep(2);
+      } catch (e) {
+        showErr('step1Error', e.name === 'AbortError' ? 'Request timed out.' : 'Network error.');
+      } finally {
+        showLoading('step1Loading', false);
+      }
+    });
+
+    document.getElementById('btnBack2').addEventListener('click', () => setStep(1));
+    document.getElementById('btnToStrategy').addEventListener('click', () => {
+      renderStrategyCards();
+      setStep(3);
+    });
+    document.getElementById('btnBack3').addEventListener('click', () => setStep(2));
+
+    document.getElementById('btnGenerate').addEventListener('click', async () => {
+      showErr('step3Error', '');
+      const additional = state.strategy === 'other'
+        ? document.getElementById('customStrategyText').value
+        : '';
+      showLoading('step3Loading', true);
+      try {
+        const res = await wizardFetch('/.netlify/functions/generate-claim-letter', {
+          method: 'POST',
+          body: JSON.stringify({
+            analysis: state.analysis,
+            strategy: state.strategy === 'other' ? 'custom' : state.strategy,
+            insuredName: document.getElementById('fillName').value,
+            insuredAddress: document.getElementById('fillAddress').value,
+            additionalContext: additional,
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          showErr('step3Error', data.error || 'Generation failed.');
+          return;
+        }
+        state.letterRaw = data.letter || '';
+        state.editing = false;
+        document.getElementById('letterBody').contentEditable = 'false';
+        document.getElementById('letterBody').innerHTML = highlightPlaceholders(state.letterRaw);
+        const a = state.analysis;
+        document.getElementById('letterTitleBar').textContent =
+          'Your Insurance Dispute Letter — ' + (a.claimType || '') + ' | ' + (a.insurerName || '') + ' | ' + (state.strategy || '');
+        prefillFillFields();
+        document.getElementById('fillDate').value = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        setStep(4);
+      } catch (e) {
+        showErr('step3Error', e.name === 'AbortError' ? 'Request timed out.' : 'Network error.');
+      } finally {
+        showLoading('step3Loading', false);
+      }
+    });
+
+    document.getElementById('btnEditToggle').addEventListener('click', () => {
+      state.editing = !state.editing;
+      const lb = document.getElementById('letterBody');
+      lb.contentEditable = state.editing ? 'true' : 'false';
+      document.getElementById('btnEditToggle').textContent = state.editing ? 'Stop editing' : 'Edit letter';
+      if (!state.editing) {
+        state.letterRaw = lb.innerText;
+        lb.innerHTML = highlightPlaceholders(state.letterRaw);
+      } else {
+        lb.textContent = state.letterRaw;
+      }
+    });
+
+    document.getElementById('btnFillPh').addEventListener('click', () => {
+      const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+      const g = id => document.getElementById(id).value || '';
+      let t = document.getElementById('letterBody').innerText;
+      const map = [
+        [/\[DATE\]/gi, today],
+        [/\bDATE\b/g, today],
+        [/\[INSURED NAME[^\]]*\]/gi, g('fillName')],
+        [/\bINSURED NAME\b/g, g('fillName')],
+        [/\[ADDRESS[^\]]*\]/gi, g('fillAddress')],
+        [/\bADDRESS\b/g, g('fillAddress')],
+        [/\[CITY[^\]]*STATE[^\]]*ZIP[^\]]*\]/gi, g('fillCity')],
+        [/\bCITY[,\s]*STATE[,\s]*ZIP\b/gi, g('fillCity')],
+        [/\[PHONE[^\]]*\]/gi, g('fillPhone')],
+        [/\bPHONE\b/g, g('fillPhone')],
+        [/\[EMAIL[^\]]*\]/gi, g('fillEmail')],
+        [/\bEMAIL\b/g, g('fillEmail')],
+        [/\[CLAIM NUMBER[^\]]*\]/gi, g('fillClaimNumber')],
+        [/\[POLICY NUMBER[^\]]*\]/gi, g('fillPolicyNumber')],
+        [/\[DATE OF LOSS[^\]]*\]/gi, g('fillDateOfLoss')],
+        [/\[DISPUTED AMOUNT[^\]]*\]/gi, g('fillDisputedAmount')],
+        [/\[INSURER ADDRESS[^\]]*\]/gi, g('fillInsurerAddress')],
+        [/\[ADJUSTER NAME[^\]]*\]/gi, g('fillAdjusterName')],
+        [/\n?\[PRINTED NAME[^\]]*\]/gi, ''],
+        [/\[INSURED SIGNATURE[^\]]*\]/gi, g('fillName')],
+      ];
+      map.forEach(([re, val]) => { t = t.replace(re, val); });
+      t = t.replace(/\n{3,}/g, '\n\n').trim();
+      state.letterRaw = t;
+      document.getElementById('letterBody').innerHTML = highlightPlaceholders(t);
+    });
+
+    document.getElementById('btnCopy').addEventListener('click', async () => {
+      const text = document.getElementById('letterBody').innerText;
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+    });
+
+    document.getElementById('btnPdf').addEventListener('click', async () => {
+      showErr('step4Error', '');
+      showLoading('step4Loading', true);
+      try {
+        const text = document.getElementById('letterBody').innerText;
+        const res = await wizardFetch('/.netlify/functions/generate-pdf', {
+          method: 'POST',
+          body: JSON.stringify({
+            text,
+            fileName: 'insurance-dispute-letter.pdf',
+            certifiedMailHeader: true,
+          }),
+        });
+        if (!res.ok) {
+          const j = await res.json().catch(() => ({}));
+          showErr('step4Error', j.error || 'PDF failed');
+          return;
+        }
+        const blob = await res.blob();
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'insurance-dispute-letter.pdf';
+        a.click();
+        URL.revokeObjectURL(a.href);
+      } catch (e) {
+        showErr('step4Error', e.name === 'AbortError' ? 'Timed out.' : 'PDF error.');
+      } finally {
+        showLoading('step4Loading', false);
+      }
+    });
+
+    document.getElementById('btnDocx').addEventListener('click', async () => {
+      showErr('step4Error', '');
+      try {
+        const text = document.getElementById('letterBody').innerText;
+        const res = await wizardFetch('/.netlify/functions/generate-docx', {
+          method: 'POST',
+          body: JSON.stringify({ text, fileName: 'insurance-dispute-letter.docx' }),
+        });
+        if (!res.ok) {
+          const j = await res.json().catch(() => ({}));
+          showErr('step4Error', j.error || 'DOCX failed');
+          return;
+        }
+        const blob = await res.blob();
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'insurance-dispute-letter.docx';
+        a.click();
+        URL.revokeObjectURL(a.href);
+      } catch (e) {
+        showErr('step4Error', 'DOCX error.');
+      }
+    });
+
+    document.getElementById('btnStartOver').addEventListener('click', () => {
+      if (!confirm('Clear all data and return to step 1?')) return;
+      Object.assign(state, {
+        step: 1, fileBase64: null, fileType: null, analysis: null,
+        strategy: null, letterRaw: '', editing: false,
+      });
+      document.querySelectorAll('input,textarea,select').forEach(el => {
+        if (el.id === 'fillDate') return;
+        if (el.type === 'button' || el.type === 'file') return;
+        el.value = '';
+      });
+      document.getElementById('claimText').value = '';
+      document.getElementById('fileNameDisplay').textContent = '';
+      document.getElementById('letterBody').innerHTML = '';
+      showErr('step1Error', '');
+      showErr('step3Error', '');
+      showErr('step4Error', '');
+      document.getElementById('btnAnalyze').disabled = true;
+      document.getElementById('btnGenerate').disabled = true;
+      setStep(1);
+    });
+
+    await boot();
+    syncAnalyzeBtn();
+  </script>
+</body>
+</html>
