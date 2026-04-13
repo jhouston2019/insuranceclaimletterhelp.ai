@@ -108,11 +108,6 @@ Sincerely,
 Enclosures:
 [list from documentationNeeded in analysis]
 
-Note: Given the nature of this dispute, you may wish to
-have a licensed public adjuster or insurance attorney
-review this letter before mailing. This draft gives them
-a complete, structured starting point.
-
 TONE RULES — CRITICAL:
 - Professional, controlled, non-emotional
 - Escalation-aware but never overtly threatening
