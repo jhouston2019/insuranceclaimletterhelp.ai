@@ -99,8 +99,16 @@
     .strat-card .rec { display: none; font-size: 0.7rem; background: #fbbf24; color: #111; padding: 2px 8px; border-radius: 4px; margin-bottom: 6px; font-weight: 700; }
     .strat-card.recommended .rec { display: inline-block; }
     #letterBody {
-      font-family: 'Courier New', monospace; white-space: pre-wrap; background: #fff; border: 1px solid var(--border);
-      border-radius: 8px; padding: 20px; min-height: 320px; font-size: 0.9rem; line-height: 1.45;
+      font-family: 'Georgia', serif;
+      font-size: 13px;
+      line-height: 1.7;
+      color: #1a1a1a;
+      white-space: pre-wrap;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      min-height: 320px;
     }
     #letterBody .ph { background: #fef3c7; padding: 0 2px; }
     .critical-msg { font-size: 0.75rem; margin-top: 6px; color: #fecaca; max-width: 220px; }
@@ -889,8 +897,8 @@ Phone: 1-800-555-0100`;
 
       r('[INSURED NAME]', name);
       r('[PRINTED NAME]', name);
-      r('[INSURED SIGNATURE]', name);
       r('[YOUR NAME]', name);
+      r('[INSURED SIGNATURE]', '________________________');
       r('[ADDRESS]', address);
       r('[CITY, STATE ZIP]', city);
       r('[PHONE]', phone);
