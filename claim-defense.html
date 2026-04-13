@@ -403,6 +403,7 @@ Phone: 1-800-555-0100`;
       strategy: null,
       letterRaw: '',
       editing: false,
+      prefillApplied: false,
     };
 
     function showErr(id, msg) {
@@ -633,7 +634,10 @@ Phone: 1-800-555-0100`;
       f('fillInsurerAddress', a.insurerAddress || (a.insurerContactInfo && a.insurerContactInfo.address));
 
       // Auto-apply known values to letter immediately
-      setTimeout(() => document.getElementById('btnFillPh').click(), 100);
+      if (!state.prefillApplied) {
+        state.prefillApplied = true;
+        setTimeout(() => document.getElementById('btnFillPh').click(), 100);
+      }
     }
 
     function renderStrategyCards() {
@@ -938,11 +942,11 @@ Phone: 1-800-555-0100`;
       showErr('step4Error', '');
       showLoading('step4Loading', true);
       try {
-        const text = document.getElementById('letterBody').innerText;
+        const letterText = document.getElementById('letterBody').innerText;
         const res = await wizardFetch('/.netlify/functions/generate-pdf', {
           method: 'POST',
           body: JSON.stringify({
-            text,
+            text: letterText,
             fileName: 'insurance-dispute-letter.pdf',
             certifiedMailHeader: true,
           }),
@@ -968,10 +972,10 @@ Phone: 1-800-555-0100`;
     document.getElementById('btnDocx').addEventListener('click', async () => {
       showErr('step4Error', '');
       try {
-        const text = document.getElementById('letterBody').innerText;
+        const letterText = document.getElementById('letterBody').innerText;
         const res = await wizardFetch('/.netlify/functions/generate-docx', {
           method: 'POST',
-          body: JSON.stringify({ text, fileName: 'insurance-dispute-letter.docx' }),
+          body: JSON.stringify({ text: letterText, fileName: 'insurance-dispute-letter.docx' }),
         });
         if (!res.ok) {
           const j = await res.json().catch(() => ({}));
@@ -993,7 +997,7 @@ Phone: 1-800-555-0100`;
       if (!confirm('Clear all data and return to step 1?')) return;
       Object.assign(state, {
         step: 1, fileBase64: null, fileType: null, analysis: null,
-        strategy: null, letterRaw: '', editing: false,
+        strategy: null, letterRaw: '', editing: false, prefillApplied: false,
       });
       document.querySelectorAll('input,textarea,select').forEach(el => {
         if (el.id === 'fillDate') return;
