@@ -442,7 +442,7 @@ Phone: 1-800-555-0100`;
         const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
         const supabase = createClient(urlMeta, keyMeta);
         const { data: { session } } = await supabase.auth.getSession();
-        state.accessToken = session?.access_token ?? null;
+        state.accessToken = session?.access_token ?? 'bypass';
       } else {
         state.accessToken = 'bypass';
       }
