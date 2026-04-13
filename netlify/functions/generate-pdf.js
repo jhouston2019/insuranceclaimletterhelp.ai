@@ -1,13 +1,12 @@
 const { PDFDocument, StandardFonts, rgb } = require("pdf-lib");
 
 exports.handler = async (event) => {
-  // Handle CORS preflight
   if (event.httpMethod === 'OPTIONS') {
     return {
       statusCode: 200,
       headers: {
         'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         'Access-Control-Allow-Methods': 'POST, OPTIONS'
       },
       body: ''
@@ -15,96 +14,78 @@ exports.handler = async (event) => {
   }
 
   try {
-    const {
-      text,
-      fileName = 'response-letter.pdf',
-      certifiedMailHeader,
-    } = JSON.parse(event.body || '{}');
+    const body = JSON.parse(event.body || '{}');
+    const { text, fileName = 'dispute-letter.pdf', certifiedMailHeader } = body;
 
     const headerBlock = certifiedMailHeader
       ? 'SENT VIA CERTIFIED MAIL — RETURN RECEIPT REQUESTED\n\n'
       : '';
-    const mergedText = headerBlock + (text || '');
+    const fullText = headerBlock + (text || '');
 
-    if (!mergedText.trim()) {
+    if (!fullText.trim()) {
       return {
         statusCode: 400,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
-        },
-        body: JSON.stringify({ error: 'No text provided for PDF generation' })
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        body: JSON.stringify({ error: 'No text provided' })
       };
     }
-    
-    // Create a new PDF document
+
     const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage([612, 792]); // Standard letter size
-    
-    // Get fonts
-    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-    
-    // Set up text formatting
-    const fontSize = 12;
-    const lineHeight = fontSize * 1.2;
-    const margin = 50;
-    const maxWidth = page.getWidth() - (margin * 2);
-    
-    // Split text into lines that fit the page width
-    const lines = [];
-    const words = mergedText.split(' ');
-    let currentLine = '';
-    
-    for (const word of words) {
-      const testLine = currentLine + (currentLine ? ' ' : '') + word;
-      const textWidth = font.widthOfTextAtSize(testLine, fontSize);
-      
-      if (textWidth <= maxWidth) {
-        currentLine = testLine;
-      } else {
-        if (currentLine) {
-          lines.push(currentLine);
-          currentLine = word;
+    const font = await pdfDoc.embedFont(StandardFonts.TimesRoman);
+    const fontSize = 11;
+    const lineHeight = fontSize * 1.5;
+    const margin = 72;
+
+    const addPage = () => {
+      const p = pdfDoc.addPage([612, 792]);
+      return { page: p, y: p.getHeight() - margin };
+    };
+
+    let { page, y } = addPage();
+    const maxWidth = 612 - margin * 2;
+
+    const rawLines = fullText.split('\n');
+    const wrappedLines = [];
+
+    for (const raw of rawLines) {
+      if (raw.trim() === '') {
+        wrappedLines.push('');
+        continue;
+      }
+      const words = raw.split(' ');
+      let current = '';
+      for (const word of words) {
+        const test = current ? current + ' ' + word : word;
+        if (font.widthOfTextAtSize(test, fontSize) <= maxWidth) {
+          current = test;
         } else {
-          lines.push(word);
+          if (current) wrappedLines.push(current);
+          current = word;
         }
       }
+      if (current) wrappedLines.push(current);
     }
-    if (currentLine) {
-      lines.push(currentLine);
-    }
-    
-    // Draw the text
-    let yPosition = page.getHeight() - margin;
-    
-    for (const line of lines) {
-      if (yPosition < margin) {
-        // Add new page if needed
-        const newPage = pdfDoc.addPage([612, 792]);
-        yPosition = newPage.getHeight() - margin;
-        newPage.drawText(line, {
-          x: margin,
-          y: yPosition,
-          size: fontSize,
-          font: font,
-          color: rgb(0, 0, 0)
-        });
-      } else {
+
+    for (const line of wrappedLines) {
+      if (y < margin + lineHeight) {
+        const next = addPage();
+        page = next.page;
+        y = next.y;
+      }
+      if (line.trim()) {
         page.drawText(line, {
           x: margin,
-          y: yPosition,
+          y,
           size: fontSize,
-          font: font,
+          font,
           color: rgb(0, 0, 0)
         });
       }
-      yPosition -= lineHeight;
+      y -= lineHeight;
     }
-    
-    // Generate PDF bytes
+
     const pdfBytes = await pdfDoc.save();
-    
+
     return {
       statusCode: 200,
       headers: {
@@ -112,20 +93,16 @@ exports.handler = async (event) => {
         'Content-Disposition': `attachment; filename="${fileName}"`,
         'Access-Control-Allow-Origin': '*'
       },
-      body: Buffer.from(pdfBytes).toString("base64"),
+      body: Buffer.from(pdfBytes).toString('base64'),
       isBase64Encoded: true
     };
-  } catch (error) {
+
+  } catch (err) {
+    console.error('generate-pdf error:', err);
     return {
       statusCode: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      },
-      body: JSON.stringify({ 
-        error: 'Failed to generate PDF',
-        details: error.message 
-      })
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      body: JSON.stringify({ error: 'Failed to generate PDF', details: err.message })
     };
   }
-}
+};
