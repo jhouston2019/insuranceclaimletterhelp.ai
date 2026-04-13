@@ -1,5 +1,6 @@
 /**
- * Renders 1200×800 PNG mockups of claim-defense wizard steps (SVG → sharp).
+ * Renders PNG mockups of claim-defense wizard steps (SVG → sharp).
+ * Output is 2400×1600 (2× logical 1200×800) for sharp display when sized to 1200×800 on the site.
  * Run: node scripts/generate-wizard-preview-pngs.mjs
  */
 import sharp from "sharp";
@@ -15,6 +16,12 @@ const GRAY = "#f3f4f6";
 const BORDER = "#d1d5db";
 const WHITE = "#ffffff";
 const MUTED = "#6b7280";
+
+/** Raster size (retina); coordinates stay in 0–1200 × 0–800 via viewBox */
+const OUT_W = 2400;
+const OUT_H = 1600;
+const VB_W = 1200;
+const VB_H = 800;
 
 function esc(s) {
   return String(s)
@@ -48,15 +55,24 @@ function progress(activeStep) {
 
 function wrapSvg(inner) {
   return `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
-<rect width="1200" height="800" fill="${GRAY}"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="${OUT_W}" height="${OUT_H}" viewBox="0 0 ${VB_W} ${VB_H}">
+<rect width="${VB_W}" height="${VB_H}" fill="${GRAY}"/>
 ${inner}
 </svg>`;
 }
 
+function letterTextRows(lines, startY, dy, fontSize) {
+  return lines
+    .map(
+      (line, i) =>
+        `<text x="48" y="${startY + i * dy}" fill="#1a1a1a" font-family="Georgia, Times New Roman, serif" font-size="${fontSize}">${esc(line)}</text>`
+    )
+    .join("\n");
+}
+
 async function toPng(name, svg) {
   const buf = Buffer.from(svg, "utf8");
-  await sharp(buf).resize(1200, 800).png({ compressionLevel: 9 }).toFile(join(OUT, name));
+  await sharp(buf).png({ compressionLevel: 7, effort: 10 }).toFile(join(OUT, name));
 }
 
 const sampleLetter = `RE: NOTICE OF CLAIM DETERMINATION — CLM-2024-847291
@@ -188,63 +204,69 @@ ${progress(3)}
 <text x="436" y="619" text-anchor="middle" fill="#fff" font-family="system-ui, sans-serif" font-size="12" font-weight="700">Generate My Dispute Letter →</text>
 `);
 
-const step4Letter = `[INSURED NAME]
-[ADDRESS]
-[CITY, STATE ZIP]
-January 15, 2025
+/** ~26 lines @ dy 11.25 → ends ~468; keeps room for Fill + actions inside 800px canvas */
+const step4LetterLines = [
+  "[INSURED NAME]  |  [ADDRESS]  |  [CITY, STATE ZIP]",
+  "[DATE]  •  Highland Mutual — Claims — [INSURER ADDRESS]",
+  "",
+  "Re: CLM-2024-847291 | Policy HO-9847261 | Date of loss 2024-09-15",
+  "Dear Claims Department,",
+  "",
+  "SECTION I — BACKGROUND:",
+  "Within 24 hours of the 9/15/24 storm I reported interior intrusion, sent photos,",
+  "mitigation invoices, drying logs, and a contractor line-item estimate for",
+  "[DISPUTED AMOUNT]. Partial exterior payment issued; interior denied in [DATE] letter.",
+  "",
+  "SECTION II — YOUR DETERMINATION:",
+  "Drywall, insulation, flooring, and trim denied under Section III (wear/tear).",
+  "The denial does not map those exclusions to room-by-room engineer findings.",
+  "",
+  "SECTION III — FORMAL DISPUTE (PARTIAL / SCOPE):",
+  "(A) Sudden wind-driven entry is not reconciled with blanket wear/tear for every",
+  "interior line. (B) Paid exterior wind damage and omitted interior tie to same peril.",
+  "(C) Produce the investigation file, photos, and notes actually relied upon.",
+  "",
+  "SECTION IV — REQUESTED RELIEF (15 business days):",
+  "Rescind or amend the denial; provide written bases with file citations; confirm",
+  "re-inspection and appraisal rights. I reserve all rights under policy and law.",
+  "",
+  "Respectfully,",
+  "[INSURED NAME]  •  [PHONE]  •  [EMAIL]",
+];
 
-Highland Mutual Insurance Company
-Claims Department
-[INSURER ADDRESS]
-
-Re: Claim Number: CLM-2024-847291, Policy Number: HO-9847261, Date of Loss: 2024-09-15
-
-Dear Claims Department,
-
-SECTION I — BACKGROUND:
-The claim was reported promptly with photos and contractor estimates. The carrier issued a partial payment and later denied interior repairs as wear and tear.
-
-SECTION II — BASIS FOR DISPUTE:
-The denial letter does not reconcile the engineer summary with line-item scope. The exclusion cited does not match the documented sudden water intrusion.`;
+const step4LetterSvg = letterTextRows(step4LetterLines, 182, 11.25, "9.5");
 
 const step4 = wrapSvg(`
 ${topNav()}
 ${progress(4)}
 <rect x="20" y="124" width="1160" height="656" rx="10" fill="${WHITE}" stroke="${BORDER}" stroke-width="1"/>
-<text x="36" y="156" fill="#111" font-family="Georgia, serif" font-size="17" font-weight="700">Your Insurance Dispute Letter — Property Damage | Highland Mutual | partial</text>
-<rect x="1050" y="136" width="110" height="28" rx="6" fill="#e5e7eb"/>
-<text x="1105" y="154" text-anchor="middle" fill="#111" font-family="system-ui, sans-serif" font-size="11">Edit letter</text>
-<rect x="36" y="172" width="1128" height="218" rx="8" fill="#fff" stroke="${BORDER}"/>
-<text x="48" y="190" fill="#1a1a1a" font-family="Georgia, serif" font-size="11">${esc(step4Letter.split("\n")[0])}</text>
-<text x="48" y="206" fill="#1a1a1a" font-family="Georgia, serif" font-size="11">${esc(step4Letter.split("\n")[1])}</text>
-<text x="48" y="222" fill="#1a1a1a" font-family="Georgia, serif" font-size="11">${esc(step4Letter.split("\n")[2])}</text>
-<text x="48" y="238" fill="#1a1a1a" font-family="Georgia, serif" font-size="11">${esc(step4Letter.split("\n")[3])}</text>
-<text x="48" y="254" fill="#1a1a1a" font-family="Georgia, serif" font-size="11">${esc(step4Letter.split("\n")[4])}</text>
-<text x="48" y="270" fill="#1a1a1a" font-family="Georgia, serif" font-size="11">${esc(step4Letter.split("\n")[5])}</text>
-<text x="48" y="286" fill="#1a1a1a" font-family="Georgia, serif" font-size="11">${esc(step4Letter.split("\n")[6])}</text>
-<text x="48" y="302" fill="#1a1a1a" font-family="Georgia, serif" font-size="11">${esc(step4Letter.split("\n")[7])}</text>
-<text x="48" y="318" fill="#1a1a1a" font-family="Georgia, serif" font-size="11">${esc(step4Letter.split("\n")[8])}</text>
-<text x="48" y="334" fill="#1a1a1a" font-family="Georgia, serif" font-size="11">${esc(step4Letter.split("\n")[9])}</text>
-<text x="48" y="350" fill="#1a1a1a" font-family="Georgia, serif" font-size="11">${esc(step4Letter.split("\n")[10])}</text>
-<text x="48" y="366" fill="#1a1a1a" font-family="Georgia, serif" font-size="11">${esc(step4Letter.split("\n")[11])}</text>
-<text x="48" y="382" fill="#1a1a1a" font-family="Georgia, serif" font-size="11">${esc(step4Letter.split("\n")[12])}</text>
-<text x="36" y="408" fill="#111" font-family="Georgia, serif" font-size="14" font-weight="700">Fill placeholders</text>
-<text x="36" y="428" fill="${MUTED}" font-family="system-ui, sans-serif" font-size="10">Complete your details. [DATE] defaults to today.</text>
-<rect x="36" y="440" width="340" height="26" rx="6" fill="#fff" stroke="${BORDER}"/><text x="48" y="457" fill="#111" font-family="system-ui, sans-serif" font-size="10">Jane Policyholder</text>
-<rect x="392" y="440" width="340" height="26" rx="6" fill="#fff" stroke="${BORDER}"/><text x="404" y="457" fill="#111" font-family="system-ui, sans-serif" font-size="10">123 Oak Street</text>
-<rect x="748" y="440" width="340" height="26" rx="6" fill="#fff" stroke="${BORDER}"/><text x="760" y="457" fill="#111" font-family="system-ui, sans-serif" font-size="10">Atlanta, GA 30309</text>
-<rect x="36" y="476" width="340" height="26" rx="6" fill="#fff" stroke="${BORDER}"/><text x="48" y="493" fill="#111" font-family="system-ui, sans-serif" font-size="10">404-555-0199</text>
-<rect x="392" y="476" width="340" height="26" rx="6" fill="#fff" stroke="${BORDER}"/><text x="404" y="493" fill="#111" font-family="system-ui, sans-serif" font-size="10">jane@email.com</text>
-<rect x="36" y="512" width="200" height="32" rx="8" fill="${NAVY}"/>
-<text x="136" y="532" text-anchor="middle" fill="#fff" font-family="system-ui, sans-serif" font-size="11" font-weight="700">Fill placeholders</text>
-<rect x="36" y="556" width="120" height="32" rx="8" fill="#e5e7eb"/>
-<text x="96" y="576" text-anchor="middle" fill="#111" font-family="system-ui, sans-serif" font-size="11">Copy letter</text>
-<rect x="168" y="556" width="130" height="32" rx="8" fill="#e5e7eb"/>
-<text x="233" y="576" text-anchor="middle" fill="#111" font-family="system-ui, sans-serif" font-size="11">Download PDF</text>
-<rect x="310" y="556" width="140" height="32" rx="8" fill="#e5e7eb"/>
-<text x="380" y="576" text-anchor="middle" fill="#111" font-family="system-ui, sans-serif" font-size="11">Download Word</text>
-<rect x="36" y="602" width="1112" height="52" rx="8" fill="#f8fafc" stroke="#e2e8f0"/>
-<text x="48" y="626" fill="#475569" font-family="system-ui, sans-serif" font-size="10">This letter is a starting point. For complex denials, bad faith situations, or claims exceeding $25,000, consider having a licensed public adjuster or insurance attorney review before sending.</text>
+<text x="36" y="152" fill="#111" font-family="Georgia, serif" font-size="15" font-weight="700">Your Insurance Dispute Letter — Property Damage | Highland Mutual | partial</text>
+<rect x="1050" y="132" width="110" height="26" rx="6" fill="#e5e7eb"/>
+<text x="1105" y="149" text-anchor="middle" fill="#111" font-family="system-ui, sans-serif" font-size="10">Edit letter</text>
+<rect x="36" y="164" width="1128" height="318" rx="8" fill="#fff" stroke="${BORDER}"/>
+${step4LetterSvg}
+<text x="36" y="498" fill="#111" font-family="Georgia, serif" font-size="13" font-weight="700">Fill placeholders</text>
+<text x="36" y="516" fill="${MUTED}" font-family="system-ui, sans-serif" font-size="9">Complete your details. [DATE] defaults to today.</text>
+<rect x="36" y="524" width="340" height="24" rx="6" fill="#fff" stroke="${BORDER}"/><text x="48" y="540" fill="#111" font-family="system-ui, sans-serif" font-size="9">Jane Policyholder</text>
+<rect x="392" y="524" width="340" height="24" rx="6" fill="#fff" stroke="${BORDER}"/><text x="404" y="540" fill="#111" font-family="system-ui, sans-serif" font-size="9">123 Oak Street</text>
+<rect x="748" y="524" width="340" height="24" rx="6" fill="#fff" stroke="${BORDER}"/><text x="760" y="540" fill="#111" font-family="system-ui, sans-serif" font-size="9">Atlanta, GA 30309</text>
+<rect x="36" y="556" width="340" height="24" rx="6" fill="#fff" stroke="${BORDER}"/><text x="48" y="572" fill="#111" font-family="system-ui, sans-serif" font-size="9">404-555-0199</text>
+<rect x="392" y="556" width="340" height="24" rx="6" fill="#fff" stroke="${BORDER}"/><text x="404" y="572" fill="#111" font-family="system-ui, sans-serif" font-size="9">jane@email.com</text>
+<rect x="36" y="588" width="168" height="28" rx="8" fill="${NAVY}"/>
+<text x="120" y="606" text-anchor="middle" fill="#fff" font-family="system-ui, sans-serif" font-size="10" font-weight="700">Fill placeholders</text>
+<rect x="214" y="588" width="118" height="28" rx="8" fill="#e5e7eb"/>
+<text x="273" y="606" text-anchor="middle" fill="#111" font-family="system-ui, sans-serif" font-size="10">← Back to strategy</text>
+<rect x="342" y="588" width="100" height="28" rx="8" fill="#e5e7eb"/>
+<text x="392" y="606" text-anchor="middle" fill="#111" font-family="system-ui, sans-serif" font-size="10">Copy letter</text>
+<rect x="452" y="588" width="108" height="28" rx="8" fill="#e5e7eb"/>
+<text x="506" y="606" text-anchor="middle" fill="#111" font-family="system-ui, sans-serif" font-size="10">Download PDF</text>
+<rect x="570" y="588" width="118" height="28" rx="8" fill="#e5e7eb"/>
+<text x="629" y="606" text-anchor="middle" fill="#111" font-family="system-ui, sans-serif" font-size="10">Download Word</text>
+<rect x="698" y="588" width="92" height="28" rx="8" fill="#e5e7eb"/>
+<text x="744" y="606" text-anchor="middle" fill="#111" font-family="system-ui, sans-serif" font-size="10">Start over</text>
+<rect x="36" y="624" width="1112" height="34" rx="8" fill="#f8fafc" stroke="#e2e8f0"/>
+<text x="48" y="640" fill="#475569" font-family="system-ui, sans-serif" font-size="8.5">Starting point only — complex denials / bad faith / claims over $25k: have a licensed public adjuster or attorney review before sending.</text>
+<text x="48" y="652" fill="#475569" font-family="system-ui, sans-serif" font-size="8.5">Not legal advice; no attorney-client relationship.</text>
 `);
 
 mkdirSync(OUT, { recursive: true });
