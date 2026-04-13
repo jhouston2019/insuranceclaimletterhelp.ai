@@ -597,18 +597,14 @@ Phone: 1-800-555-0100`;
     }
 
     function prefillFillFields() {
-      const a = state.analysis;
-      if (!a) return;
-      const set = (id, v) => {
-        const el = document.getElementById(id);
-        if (el && !el.value && v && v !== 'Not specified') el.value = v;
-      };
-      set('fillClaimNumber', a.claimNumber);
-      set('fillPolicyNumber', a.policyNumber);
-      set('fillDateOfLoss', a.dateOfLoss);
-      if (a.amountDisputed && a.amountDisputed !== 'Not specified') set('fillDisputedAmount', a.amountDisputed);
-      set('fillInsurerAddress', a.insurerContactInfo && a.insurerContactInfo.address);
-      set('fillAdjusterName', a.adjusterName);
+      const a = state.analysis || {};
+      const f = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
+      f('fillClaimNumber', a.claimNumber);
+      f('fillPolicyNumber', a.policyNumber);
+      f('fillDateOfLoss', a.dateOfLoss);
+      f('fillDisputedAmount', a.amountDisputed);
+      f('fillAdjusterName', a.adjusterName);
+      f('fillInsurerAddress', a.insurerAddress || (a.insurerContactInfo && a.insurerContactInfo.address));
     }
 
     function renderStrategyCards() {
