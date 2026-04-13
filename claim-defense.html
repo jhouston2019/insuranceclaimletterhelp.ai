@@ -455,6 +455,24 @@ Phone: 1-800-555-0100`;
     }
 
     function autoExtractFields(text) {
+      // Insured name — match Mr./Mrs. name block
+      const nameMatch = text.match(/(?:Mr\.\s*(?:&|and)\s*Mrs\.|Mr\.|Mrs\.|Ms\.|Dr\.)\s*([A-Z][a-z]+\s+[A-Z][a-z]+)/);
+      if (nameMatch) {
+        const titleMatch = text.match(/((?:Mr\.\s*(?:&|and)\s*Mrs\.|Mr\.|Mrs\.|Ms\.|Dr\.)\s*[A-Z][a-z]+\s+[A-Z][a-z]+)/);
+        if (titleMatch) document.getElementById('fillName').value = titleMatch[1].trim();
+      }
+
+      // Street address — number + street name + type
+      const addressMatch = text.match(/(\d{3,5}\s+[A-Za-z0-9 ]+(?:Drive|Dr|Street|St|Avenue|Ave|Road|Rd|Lane|Ln|Blvd|Boulevard|Way|Court|Ct|Place|Pl)\.?)/i);
+      if (addressMatch) document.getElementById('fillAddress').value = addressMatch[1].trim();
+
+      // City State ZIP — look for word(s) comma state zip pattern
+      const cityMatch = text.match(/([A-Za-z][A-Za-z\s]{2,20},\s*[A-Z]{2}\s+\d{5})/);
+      if (cityMatch) document.getElementById('fillCity').value = cityMatch[1].trim();
+
+      const phoneMatch = text.match(/(?:Direct|Phone|Tel)[:\s]+(\(?\d{3}\)?[\s\-]\d{3}[\s\-]\d{4}(?:\s*ext\.?\s*\d+)?)/i);
+      if (phoneMatch) document.getElementById('fillPhone').value = phoneMatch[1].trim();
+
       const claimMatch = text.match(/Claim\s*No\.?\s*[:\-]?\s*([A-Z0-9\-]+)/i);
       if (claimMatch) document.getElementById('claimNumber').value = claimMatch[1].trim();
 
@@ -605,7 +623,9 @@ Phone: 1-800-555-0100`;
       f('fillDisputedAmount', a.amountDisputed);
       f('fillAdjusterName', a.adjusterName);
       f('fillInsurerAddress', a.insurerAddress || (a.insurerContactInfo && a.insurerContactInfo.address));
-      // leave fillName, fillAddress, fillCity, fillPhone, fillEmail blank — user must supply
+
+      // Auto-apply known values to letter immediately
+      setTimeout(() => document.getElementById('btnFillPh').click(), 100);
     }
 
     function renderStrategyCards() {
