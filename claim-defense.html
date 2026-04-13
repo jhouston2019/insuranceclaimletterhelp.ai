@@ -454,6 +454,35 @@ Phone: 1-800-555-0100`;
       document.getElementById('btnAnalyze').disabled = !(t.length > 0 || state.fileBase64);
     }
 
+    function autoExtractFields(text) {
+      const claimMatch = text.match(/Claim\s*No\.?\s*[:\-]?\s*([A-Z0-9\-]+)/i);
+      if (claimMatch) document.getElementById('claimNumber').value = claimMatch[1].trim();
+
+      const policyMatch = text.match(/Policy\s*No\.?\s*[:\-]?\s*([A-Z0-9\-]+)/i);
+      if (policyMatch) document.getElementById('policyNumber').value = policyMatch[1].trim();
+
+      const adjusterMatch = text.match(/(?:Sincerely|Adjuster)[,\s]+([A-Z][a-z]+ [A-Z][a-z]+)/);
+      if (adjusterMatch) document.getElementById('adjusterName').value = adjusterMatch[1].trim();
+
+      const dateMatch = text.match(/Date\s*[:\-]?\s*([A-Za-z]+ \d{1,2},\s*\d{4}|\d{1,2}\/\d{1,2}\/\d{4}|\d{4}-\d{2}-\d{2})/i);
+      if (dateMatch) {
+        const d = new Date(dateMatch[1]);
+        if (!isNaN(d)) document.getElementById('dateOfLoss').value = d.toISOString().split('T')[0];
+      }
+
+      const amountMatch = text.match(/\$[\d,]+(?:\.\d{2})?/g);
+      if (amountMatch && amountMatch.length > 0 && !document.getElementById('disputedAmount').value) {
+        document.getElementById('disputedAmount').value = amountMatch[0];
+      }
+
+      const stateAbbr = text.match(/\b(AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY)\b/g);
+      if (stateAbbr) {
+        const stateSelect = document.getElementById('claimState');
+        const match = Array.from(stateSelect.options).find(o => o.value.includes(stateAbbr[0]));
+        if (match) stateSelect.value = match.value;
+      }
+    }
+
     function daysUntilDeadline(str) {
       if (!str || str === 'Not specified') return null;
       const d = new Date(str);
@@ -608,7 +637,12 @@ Phone: 1-800-555-0100`;
       '<option value="">— Unknown/Not sure —</option>' +
       US_STATES.map(s => '<option>' + s + '</option>').join('');
 
-    document.getElementById('claimText').addEventListener('input', syncAnalyzeBtn);
+    let extractDebounce;
+    document.getElementById('claimText').addEventListener('input', () => {
+      syncAnalyzeBtn();
+      clearTimeout(extractDebounce);
+      extractDebounce = setTimeout(() => autoExtractFields(document.getElementById('claimText').value), 500);
+    });
 
     document.getElementById('btnDemo').addEventListener('click', () => {
       document.getElementById('claimText').value = DEMO_DENIAL;
@@ -648,6 +682,7 @@ Phone: 1-800-555-0100`;
       if (ext === 'txt') {
         const text = await file.text();
         document.getElementById('claimText').value = text;
+        autoExtractFields(text);
         state.fileBase64 = null;
         syncAnalyzeBtn();
         return;
@@ -664,6 +699,7 @@ Phone: 1-800-555-0100`;
         full = full.trim();
         if (full.length > 50) {
           document.getElementById('claimText').value = full;
+          autoExtractFields(full);
           state.fileBase64 = null;
           if (full.length < 300) {
             const w = document.getElementById('pdfShortWarn');
