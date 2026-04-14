@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="supabase-url" content="%%SUPABASE_URL%%" />
   <meta name="supabase-anon-key" content="%%SUPABASE_ANON_KEY%%" />
   <title>Insurance Claim Defense</title>
@@ -24,7 +24,13 @@
     .topnav .brand { font-family: Georgia, serif; font-size: 1.25rem; font-weight: 700; }
     .topnav a { color: #e5e7eb; text-decoration: none; margin-left: 16px; font-size: 0.95rem; }
     .topnav a:hover { text-decoration: underline; }
-    .wrap { max-width: 960px; margin: 0 auto; padding: 20px 16px 48px; }
+    .wrap {
+      width: 100%;
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 20px 16px 48px;
+      box-sizing: border-box;
+    }
     .progress { display: flex; gap: 8px; margin-bottom: 24px; }
     .progress .p {
       flex: 1; text-align: center; padding: 10px 6px; border-radius: 8px;
@@ -124,6 +130,39 @@
       color: #475569;
     }
     .critical-msg { font-size: 0.75rem; margin-top: 6px; color: #fecaca; max-width: 220px; }
+    .step2-body { padding: 20px; }
+
+    /* Use more of the viewport on phones (less gutter + roomier progress) */
+    @media (max-width: 640px) {
+      .wrap {
+        padding: 12px max(8px, env(safe-area-inset-left, 0px)) 36px max(8px, env(safe-area-inset-right, 0px));
+      }
+      .topnav {
+        padding: 12px max(10px, env(safe-area-inset-left, 0px)) 12px max(10px, env(safe-area-inset-right, 0px));
+      }
+      .topnav a { margin-left: 10px; font-size: 0.88rem; }
+      .card { padding: 14px 12px; }
+      .step2-body { padding: 14px 10px; }
+      .progress {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-bottom: 16px;
+      }
+      .progress .p {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 8px 6px;
+        font-size: 0.78rem;
+        line-height: 1.25;
+      }
+      .analysis-bar { padding: 14px 12px; }
+      .dropzone { padding: 16px 12px; }
+      #letterBody { padding: 14px 11px; min-height: 260px; }
+      .btn-row .btn { margin-right: 0; }
+    }
   </style>
 </head>
 <body>
@@ -239,7 +278,7 @@
           <div id="criticalExtra" class="critical-msg" style="display:none;">Download letter and consult a professional</div>
         </div>
       </div>
-      <div style="padding:20px;">
+      <div class="step2-body">
         <div class="metrics" id="metricsRow"></div>
         <h3 class="section-title">What the insurer is claiming</h3>
         <p id="plainEnglish"></p>
