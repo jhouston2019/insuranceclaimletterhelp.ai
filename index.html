@@ -71,6 +71,114 @@
       line-height: 1.6;
       font-size: 1.05rem;
     }
+
+    .main-wrap {
+      width: min(1120px, 92%);
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .main-prose-850 {
+      max-width: 850px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .main-prose-800 {
+      max-width: 800px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .main-prose-700 {
+      max-width: 700px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .main-prose-650 {
+      max-width: 650px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .main-prose-750 {
+      max-width: 750px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .main-box-850-mb4 {
+      max-width: 850px;
+      margin: 0 auto 4rem;
+    }
+    .main-grid-1000 {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    .main-grid-1000-mb4 {
+      max-width: 1000px;
+      margin: 0 auto 4rem;
+    }
+    .main-grid-1000-mb3 {
+      max-width: 1000px;
+      margin: 0 auto 3rem;
+    }
+    .main-grid-1100-mb4 {
+      max-width: 1100px;
+      margin: 0 auto 4rem;
+    }
+    .main-grid-1100-mb3 {
+      max-width: 1100px;
+      margin: 0 auto 3rem;
+    }
+    .main-grid-1100 {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .main-box-900-mb3 {
+      max-width: 900px;
+      margin: 0 auto 3rem;
+    }
+    .main-box-900-mb4 {
+      max-width: 900px;
+      margin: 0 auto 4rem;
+    }
+    .main-card-950 {
+      max-width: 950px;
+      margin: 0 auto;
+    }
+    .main-card-850 {
+      max-width: 850px;
+      margin: 0 auto;
+    }
+    .main-step-num {
+      margin: 0 auto 20px;
+    }
+    .main-card-850-mt-auto {
+      max-width: 850px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .main-block-950-mt {
+      margin-top: 3rem;
+      max-width: 950px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .main-card-900-mt {
+      margin-top: 3rem;
+      max-width: 900px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .main-roi-card {
+      max-width: 700px;
+      margin: 0 auto;
+    }
+    .main-cta-p-lead {
+      max-width: 800px;
+      margin: 0 auto 2rem;
+    }
+    .main-cta-p-sub {
+      max-width: 750px;
+      margin: 0 auto 3rem;
+    }
+
     @media (max-width: 768px) {
       .platform-preview-section .platform-screenshot-container,
       .platform-preview-section .dashboard-visual-wrapper {
@@ -80,6 +188,60 @@
         margin-right: 0;
         padding-left: 1rem;
         padding-right: 1rem;
+        box-sizing: border-box;
+      }
+    }
+    @media (max-width: 768px) {
+      .platform-preview-section {
+        max-width: 100%;
+        width: 100%;
+        margin-left: 0;
+        margin-right: 0;
+        padding-left: 1rem;
+        padding-right: 1rem;
+        box-sizing: border-box;
+      }
+      .platform-preview-section .dashboard-visual-wrapper,
+      .platform-preview-section .platform-screenshot-container,
+      .platform-preview-section .workflow-steps-grid,
+      .platform-preview-section .platform-callout-title,
+      .platform-preview-section .platform-callout-body {
+        max-width: 100%;
+        width: 100%;
+        margin-left: 0;
+        margin-right: 0;
+        padding-left: 0;
+        padding-right: 0;
+        box-sizing: border-box;
+      }
+      .main-wrap,
+      .main-prose-850,
+      .main-prose-800,
+      .main-prose-700,
+      .main-prose-650,
+      .main-prose-750,
+      .main-box-850-mb4,
+      .main-grid-1000,
+      .main-grid-1000-mb4,
+      .main-grid-1000-mb3,
+      .main-grid-1100-mb4,
+      .main-grid-1100-mb3,
+      .main-grid-1100,
+      .main-box-900-mb3,
+      .main-box-900-mb4,
+      .main-card-950,
+      .main-card-850,
+      .main-step-num,
+      .main-card-850-mt-auto,
+      .main-block-950-mt,
+      .main-card-900-mt,
+      .main-roi-card,
+      .main-cta-p-lead,
+      .main-cta-p-sub {
+        max-width: 100%;
+        width: 100%;
+        margin-left: 0;
+        margin-right: 0;
         box-sizing: border-box;
       }
     }
@@ -100,12 +262,12 @@
     <!-- HERO -->
     <section style="position:relative; min-height:500px; display:grid; place-items:center; text-align:center; color:#ffffff; padding:80px 20px; background: url('./images/claimhelp.jpg') center/cover no-repeat;">
       <div style="position:absolute; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.75); z-index:1;"></div>
-      <div style="width:min(1120px, 92%); margin-inline:auto; position:relative; z-index:2;">
+      <div class="main-wrap" style="position:relative; z-index:2;">
         <h1 style="font-size:clamp(2rem, 4.5vw, 3.5rem); margin:0 0 1.5rem 0; text-shadow:0 2px 24px rgba(0,0,0,0.5); color:#ffffff; text-align:center; line-height:1.2; font-weight:900;">Insurance Companies Owe You Money.<br><span style="color:#22c55e;">Make Them Pay.</span></h1>
-        <p style="font-size:clamp(1.15rem, 2.2vw, 1.6rem); color:#ffffff; margin:0 0 1rem 0; line-height:1.5; max-width:850px; margin-left:auto; margin-right:auto; font-weight:500;">Professional insurance correspondence with verified legal citations—$19, delivered in 10 minutes.</p>
-        <p style="font-size:clamp(1rem, 1.8vw, 1.2rem); color:#cbd5e1; margin:0 0 1rem 0; line-height:1.6; max-width:850px; margin-left:auto; margin-right:auto; font-weight:500;">The carrier sends: A denial. A lowball offer. A delay. A reservation of rights letter. A documentation request. A partial payment.</p>
-        <p style="font-size:clamp(1.05rem, 1.9vw, 1.25rem); color:#22c55e; margin:0 0 1.5rem 0; line-height:1.5; max-width:800px; margin-left:auto; margin-right:auto; font-weight:700;">Don't stress...Insurance Claim Response Pro gives you the expert response you need.</p>
-        <p style="font-size:clamp(1rem, 1.8vw, 1.2rem); color:#cbd5e1; margin:0 0 1.5rem 0; line-height:1.5; max-width:800px; margin-left:auto; margin-right:auto; font-weight:500;">Most claim letters are written — but not structured in a way that gets taken seriously or acted on.</p>
+        <p class="main-prose-850" style="font-size:clamp(1.15rem, 2.2vw, 1.6rem); color:#ffffff; margin:0 0 1rem 0; line-height:1.5; font-weight:500;">Professional insurance correspondence with verified legal citations—$19, delivered in 10 minutes.</p>
+        <p class="main-prose-850" style="font-size:clamp(1rem, 1.8vw, 1.2rem); color:#cbd5e1; margin:0 0 1rem 0; line-height:1.6; font-weight:500;">The carrier sends: A denial. A lowball offer. A delay. A reservation of rights letter. A documentation request. A partial payment.</p>
+        <p class="main-prose-800" style="font-size:clamp(1.05rem, 1.9vw, 1.25rem); color:#22c55e; margin:0 0 1.5rem 0; line-height:1.5; font-weight:700;">Don't stress...Insurance Claim Response Pro gives you the expert response you need.</p>
+        <p class="main-prose-800" style="font-size:clamp(1rem, 1.8vw, 1.2rem); color:#cbd5e1; margin:0 0 1.5rem 0; line-height:1.5; font-weight:500;">Most claim letters are written — but not structured in a way that gets taken seriously or acted on.</p>
         <div style="display:flex; justify-content:center; gap:25px; flex-wrap:wrap; margin-bottom:2rem;">
           <div style="background:rgba(34, 197, 94, 0.15); border:2px solid #22c55e; border-radius:8px; padding:12px 20px;">
             <div style="color:#22c55e; font-weight:800; font-size:1.3rem;">95%+</div>
@@ -128,7 +290,7 @@
           <a href="/payment.html" style="background:#22c55e; color:#fff; padding:20px 48px; border-radius:10px; text-decoration:none; box-shadow:0 8px 24px rgba(34, 197, 94, 0.5); font-size:1.4rem; font-weight:800; display:inline-block; transition:all 0.3s; text-transform:uppercase; letter-spacing:0.5px;">Get Your Letter Now - $19</a>
         </div>
         <p style="color:#e5e7eb; margin-top:1.5rem; font-size:1.05rem; font-weight:500;">✓ Upload carrier letter  ✓ Get response that works  ✓ Download & send</p>
-        <p style="color:#cbd5e1; margin-top:1rem; font-size:1rem; font-weight:500; max-width:700px; margin-left:auto; margin-right:auto;">You don't need to figure out what to say — the structure and positioning are handled for you.</p>
+        <p class="main-prose-700" style="color:#cbd5e1; margin-top:1rem; font-size:1rem; font-weight:500;">You don't need to figure out what to say — the structure and positioning are handled for you.</p>
       </div>
     </section>
 
@@ -150,17 +312,17 @@
 
     <!-- THE PROBLEM -->
     <section style="padding:80px 0; background:#ffffff; color:#2d3748;">
-      <div style="width:min(1120px, 92%); margin-inline:auto;">
+      <div class="main-wrap">
         <h2 style="text-align:center; font-size:2.8rem; margin-bottom:2rem; color:#dc2626; font-weight:800;">Your Insurance Company Is Stalling</h2>
         
-        <div style="max-width:850px; margin:0 auto 4rem;">
+        <div class="main-box-850-mb4">
           <p style="color:#1f2937; line-height:1.9; margin-bottom:1.5rem; font-size:1.2rem; text-align:center; font-weight:500;">They received your claim. They're "reviewing" it. They sent you a letter asking for more information. They denied coverage on a technicality. They offered you 40% of what you're owed.</p>
           <p style="color:#dc2626; line-height:1.9; font-size:1.25rem; text-align:center; font-weight:700;">Every day you wait, they save money. Every weak response you send, they ignore.</p>
         </div>
 
         <h3 style="text-align:center; font-size:2rem; margin-bottom:2.5rem; color:#2d3748; font-weight:700;">Why Most People Don't Get Paid</h3>
 
-        <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:25px; max-width:1000px; margin:0 auto;">
+        <div class="main-grid-1000" style="display:grid; grid-template-columns:repeat(2, 1fr); gap:25px;">
           <div style="background:#fef2f2; border-left:4px solid #dc2626; padding:25px; border-radius:8px;">
             <h4 style="color:#dc2626; font-size:1.3rem; margin-bottom:12px; font-weight:700;">❌ DIY Letters Get Ignored</h4>
             <p style="color:#374151; line-height:1.7; margin:0; font-size:1.05rem;">Emotional emails and handwritten explanations go straight to the rejection pile.</p>
@@ -186,30 +348,30 @@
 
     <!-- HOW THIS WORKS -->
     <section style="padding:80px 0; background:#0f172a; color:#ffffff;">
-      <div style="width:min(1120px, 92%); margin-inline:auto;">
+      <div class="main-wrap">
         <h2 style="text-align:center; font-size:2.8rem; margin-bottom:4rem; color:#ffffff; font-weight:800;">How This Works</h2>
         
-        <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:30px; max-width:1100px; margin:0 auto 4rem;">
+        <div class="main-grid-1100-mb4" style="display:grid; grid-template-columns:repeat(4, 1fr); gap:30px;">
           <div style="text-align:center;">
-            <div style="background:#3b82f6; color:#fff; width:70px; height:70px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; margin:0 auto 20px; font-size:2rem; box-shadow:0 4px 12px rgba(59, 130, 246, 0.4);">1</div>
+            <div class="main-step-num" style="background:#3b82f6; color:#fff; width:70px; height:70px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:2rem; box-shadow:0 4px 12px rgba(59, 130, 246, 0.4);">1</div>
             <h3 style="color:#ffffff; font-size:1.3rem; margin-bottom:12px; font-weight:700;">Upload Their Letter</h3>
             <p style="color:#94a3b8; line-height:1.7; margin:0; font-size:1rem;">Denial, information request, payment offer, whatever they sent you.</p>
           </div>
           
           <div style="text-align:center;">
-            <div style="background:#3b82f6; color:#fff; width:70px; height:70px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; margin:0 auto 20px; font-size:2rem; box-shadow:0 4px 12px rgba(59, 130, 246, 0.4);">2</div>
+            <div class="main-step-num" style="background:#3b82f6; color:#fff; width:70px; height:70px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:2rem; box-shadow:0 4px 12px rgba(59, 130, 246, 0.4);">2</div>
             <h3 style="color:#ffffff; font-size:1.3rem; margin-bottom:12px; font-weight:700;">We Classify the Situation</h3>
             <p style="color:#94a3b8; line-height:1.7; margin:0; font-size:1rem;">Claim type, letter phase, amount at stake, who's involved.</p>
           </div>
           
           <div style="text-align:center;">
-            <div style="background:#3b82f6; color:#fff; width:70px; height:70px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; margin:0 auto 20px; font-size:2rem; box-shadow:0 4px 12px rgba(59, 130, 246, 0.4);">3</div>
+            <div class="main-step-num" style="background:#3b82f6; color:#fff; width:70px; height:70px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:2rem; box-shadow:0 4px 12px rgba(59, 130, 246, 0.4);">3</div>
             <h3 style="color:#ffffff; font-size:1.3rem; margin-bottom:12px; font-weight:700;">We Evaluate Risk</h3>
             <p style="color:#94a3b8; line-height:1.7; margin:0; font-size:1rem;">Hard stops check for fraud accusations, EUO demands, attorney requirements, coverage disputes.</p>
           </div>
           
           <div style="text-align:center;">
-            <div style="background:#22c55e; color:#fff; width:70px; height:70px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; margin:0 auto 20px; font-size:2rem; box-shadow:0 4px 12px rgba(34, 197, 94, 0.4);">4</div>
+            <div class="main-step-num" style="background:#22c55e; color:#fff; width:70px; height:70px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:2rem; box-shadow:0 4px 12px rgba(34, 197, 94, 0.4);">4</div>
             <h3 style="color:#ffffff; font-size:1.3rem; margin-bottom:12px; font-weight:700;">You Get One of Two Outcomes</h3>
             <p style="color:#94a3b8; line-height:1.7; margin:0; font-size:1rem;"><strong style="color:#22c55e;">✓ Safe to Respond:</strong> Professional correspondence outline that demands payment using carrier's own policy language<br><br><strong style="color:#fca5a5;">⛔ Attorney Required:</strong> Clear explanation of why you need professional representation and what happens if you don't get it</p>
           </div>
@@ -217,21 +379,21 @@
 
         <div style="text-align:center;">
           <a href="/payment.html" style="background:#22c55e; color:#fff; padding:18px 44px; border-radius:10px; text-decoration:none; box-shadow:0 6px 20px rgba(34, 197, 94, 0.5); font-size:1.25rem; font-weight:700; display:inline-block;">Get Started - $19</a>
-          <p style="color:#94a3b8; margin-top:1.5rem; font-size:1rem; font-weight:500; max-width:650px; margin-left:auto; margin-right:auto;">Built to clearly present your position, supporting details, and requested action — not just general communication.</p>
+          <p class="main-prose-650" style="color:#94a3b8; margin-top:1.5rem; font-size:1rem; font-weight:500;">Built to clearly present your position, supporting details, and requested action — not just general communication.</p>
         </div>
       </div>
     </section>
 
     <!-- PROTECTION -->
     <section style="padding:80px 0; background:#ffffff; color:#2d3748;">
-      <div style="width:min(1120px, 92%); margin-inline:auto;">
+      <div class="main-wrap">
         <h2 style="text-align:center; font-size:2.8rem; margin-bottom:2rem; color:#2d3748; font-weight:800;">We Protect You From Expensive Mistakes</h2>
         
-        <div style="max-width:900px; margin:0 auto 3rem;">
+        <div class="main-box-900-mb3">
           <p style="color:#1f2937; line-height:1.9; font-size:1.2rem; text-align:center; font-weight:500;">This tool <strong>refuses to generate output</strong> when attorney representation is required. Not because we can't—because responding without counsel in these situations will cost you everything you're owed.</p>
         </div>
 
-        <div style="background:#fef2f2; border:2px solid #dc2626; border-radius:12px; padding:2.5rem; max-width:950px; margin:0 auto;">
+        <div class="main-card-950" style="background:#fef2f2; border:2px solid #dc2626; border-radius:12px; padding:2.5rem;">
           <h3 style="color:#dc2626; margin:0 0 2rem 0; font-size:1.8rem; text-align:center; font-weight:800;">Hard Stops (When We Won't Help You)</h3>
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
             <div style="background:#ffffff; padding:20px; border-radius:8px;">
@@ -278,14 +440,14 @@
 
     <!-- WHAT WE HANDLE -->
     <section style="padding:80px 0; background:#f8fafc; color:#2d3748;">
-      <div style="width:min(1120px, 92%); margin-inline:auto;">
+      <div class="main-wrap">
         <h2 style="text-align:center; font-size:2.8rem; margin-bottom:2rem; color:#2d3748; font-weight:800;">We Handle All Insurance Claim Disputes</h2>
         
-        <div style="max-width:900px; margin:0 auto 4rem;">
+        <div class="main-box-900-mb4">
           <p style="color:#1f2937; line-height:1.9; font-size:1.2rem; text-align:center; font-weight:500;">One tool for every insurance dispute scenario. Upload any letter from your insurance company and get a professional response.</p>
         </div>
 
-        <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:25px; max-width:1100px; margin:0 auto;">
+        <div class="main-grid-1100" style="display:grid; grid-template-columns:repeat(3, 1fr); gap:25px;">
           <div style="background:#ffffff; border:2px solid #dc2626; border-radius:12px; padding:30px; text-align:center;">
             <div style="font-size:3rem; margin-bottom:15px;">🚫</div>
             <h3 style="color:#dc2626; font-size:1.4rem; margin-bottom:12px; font-weight:700;">Full Denials</h3>
@@ -327,11 +489,11 @@
 
     <!-- WHAT YOU RECEIVE (EVIDENCE LAYER) -->
     <section style="padding:80px 0; background:#ffffff; color:#2d3748;">
-      <div style="width:min(1120px, 92%); margin-inline:auto;">
+      <div class="main-wrap">
         <h2 style="text-align:center; font-size:2.8rem; margin-bottom:2rem; color:#2d3748; font-weight:800;">What You Receive</h2>
-        <p style="text-align:center; font-size:1.15rem; color:#64748b; margin-bottom:4rem; max-width:750px; margin-left:auto; margin-right:auto;">Structured to match professional claim communication standards.</p>
+        <p class="main-prose-750" style="text-align:center; font-size:1.15rem; color:#64748b; margin-bottom:4rem;">Structured to match professional claim communication standards.</p>
         
-        <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:30px; max-width:1000px; margin:0 auto 4rem;">
+        <div class="main-grid-1000-mb4" style="display:grid; grid-template-columns:repeat(2, 1fr); gap:30px;">
           <div style="background:#ffffff; border:2px solid #3b82f6; border-radius:12px; padding:30px;">
             <h3 style="color:#3b82f6; font-size:1.5rem; margin-bottom:15px; font-weight:700;">✓ Structured Claim Letter Ready for Submission</h3>
             <p style="color:#374151; line-height:1.8; margin:0; font-size:1.05rem;">Professional correspondence formatted to carrier standards with clear negotiation position.</p>
@@ -354,7 +516,7 @@
         </div>
 
         <!-- EVIDENCE LAYER EXAMPLE -->
-        <div style="background:#f8fafc; border:2px solid #3b82f6; border-radius:12px; padding:40px; max-width:950px; margin:0 auto;">
+        <div class="main-card-950" style="background:#f8fafc; border:2px solid #3b82f6; border-radius:12px; padding:40px;">
           <h3 style="color:#1e293b; font-size:1.8rem; margin-bottom:1rem; text-align:center; font-weight:700;">Example: Property Damage Dispute</h3>
           <p style="color:#64748b; font-size:1rem; margin-bottom:2rem; text-align:center; font-weight:500;">Each letter is generated based on your specific situation — not a reusable template.</p>
           
@@ -388,10 +550,10 @@
 
     <!-- BEFORE VS AFTER -->
     <section style="padding:80px 0; background:#f8fafc; color:#2d3748;">
-      <div style="width:min(1120px, 92%); margin-inline:auto;">
+      <div class="main-wrap">
         <h2 style="text-align:center; font-size:2.8rem; margin-bottom:4rem; color:#2d3748; font-weight:800;">Before vs After</h2>
         
-        <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:30px; max-width:1000px; margin:0 auto;">
+        <div class="main-grid-1000" style="display:grid; grid-template-columns:repeat(2, 1fr); gap:30px;">
           <div style="background:#fef2f2; border:2px solid #dc2626; border-radius:12px; padding:30px;">
             <h3 style="color:#dc2626; font-size:1.5rem; margin-bottom:15px; font-weight:700;">❌ Before</h3>
             <p style="color:#374151; line-height:1.8; margin:0 0 1.5rem 0; font-size:1.05rem;">Accepting the carrier estimate as-is</p>
@@ -409,11 +571,11 @@
 
     <!-- INSTITUTIONAL LAYER: DECISION GUARDRAILS -->
     <section style="padding:80px 0; background:#ffffff; color:#2d3748;">
-      <div style="width:min(1120px, 92%); margin-inline:auto;">
+      <div class="main-wrap">
         <h2 style="text-align:center; font-size:2.8rem; margin-bottom:2rem; color:#2d3748; font-weight:800;">Built with Claim Decision Guardrails</h2>
-        <p style="text-align:center; font-size:1.2rem; color:#64748b; margin-bottom:4rem; max-width:750px; margin-left:auto; margin-right:auto;">Not all claims require the same level of escalation.</p>
+        <p class="main-prose-750" style="text-align:center; font-size:1.2rem; color:#64748b; margin-bottom:4rem;">Not all claims require the same level of escalation.</p>
         
-        <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:30px; max-width:1100px; margin:0 auto 3rem;">
+        <div class="main-grid-1100-mb3" style="display:grid; grid-template-columns:repeat(3, 1fr); gap:30px;">
           <div style="background:#f0fdf4; border:2px solid #22c55e; border-radius:12px; padding:30px;">
             <h3 style="color:#22c55e; font-size:1.4rem; margin-bottom:15px; font-weight:700;">Standard Claim Handling</h3>
             <p style="color:#374151; line-height:1.8; margin:0; font-size:1.05rem;">Most claims involve scope gaps, pricing suppression, or omissions.</p>
@@ -430,7 +592,7 @@
           </div>
         </div>
 
-        <div style="background:#f8fafc; border:2px solid #1e293b; border-radius:12px; padding:35px; max-width:850px; margin:0 auto;">
+        <div class="main-card-850" style="background:#f8fafc; border:2px solid #1e293b; border-radius:12px; padding:35px;">
           <p style="color:#1e293b; line-height:1.9; margin:0; font-size:1.25rem; text-align:center; font-weight:600;">The goal is to document your position correctly before escalation.</p>
         </div>
       </div>
@@ -438,14 +600,14 @@
 
     <!-- VERIFIED CITATIONS -->
     <section style="padding:80px 0; background:#1e293b; color:#ffffff;">
-      <div style="width:min(1120px, 92%); margin-inline:auto;">
+      <div class="main-wrap">
         <h2 style="text-align:center; font-size:2.8rem; margin-bottom:2rem; color:#ffffff; font-weight:800;">Powered by Verified Legal Database</h2>
         
-        <div style="max-width:900px; margin:0 auto 3rem;">
+        <div class="main-box-900-mb3">
           <p style="color:#cbd5e1; line-height:1.9; font-size:1.2rem; text-align:center; font-weight:500;">Every citation in your letter is verified against official government sources. No hallucinations. No made-up laws. Just real, applicable legal references.</p>
         </div>
 
-        <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:25px; max-width:1000px; margin:0 auto 3rem;">
+        <div class="main-grid-1000-mb3" style="display:grid; grid-template-columns:repeat(3, 1fr); gap:25px;">
           <div style="background:#0f172a; border:2px solid #3b82f6; border-radius:12px; padding:25px; text-align:center;">
             <h3 style="color:#3b82f6; font-size:1.4rem; margin-bottom:12px; font-weight:700;">🏛️ State Insurance Codes</h3>
             <p style="color:#94a3b8; line-height:1.7; margin:0; font-size:1rem;">California, Texas, Florida, New York, Illinois insurance regulations</p>
@@ -462,7 +624,7 @@
           </div>
         </div>
 
-        <div style="background:#0f172a; border:2px solid #fbbf24; border-radius:12px; padding:30px; max-width:850px; margin:0 auto;">
+        <div class="main-card-850" style="background:#0f172a; border:2px solid #fbbf24; border-radius:12px; padding:30px;">
           <h3 style="color:#fbbf24; font-size:1.6rem; margin-bottom:15px; text-align:center; font-weight:700;">Why Citation Accuracy Matters</h3>
           <p style="color:#cbd5e1; line-height:1.8; margin:0 0 1rem 0; font-size:1.1rem; text-align:center;">ChatGPT and other AI tools hallucinate legal citations 5-10% of the time. Citing a fake law in your insurance appeal destroys your credibility and your claim.</p>
           <p style="color:#22c55e; line-height:1.8; margin:0; font-size:1.15rem; text-align:center; font-weight:700;">Our system: &lt;1% hallucination rate with real-time verification against official sources.</p>
@@ -472,9 +634,9 @@
 
     <!-- WHY POLICYHOLDERS USE THIS -->
     <section style="padding:80px 0; background:#ffffff; color:#2d3748;">
-      <div style="width:min(1120px, 92%); margin-inline:auto;">
+      <div class="main-wrap">
         <h2 style="text-align:center; font-size:2.8rem; margin-bottom:1rem; color:#2d3748; font-weight:800;">Why Policyholders Use Insurance Claim Response Pro</h2>
-        <p style="text-align:center; font-size:1.1rem; color:#64748b; margin-bottom:3rem; max-width:800px; margin-left:auto; margin-right:auto;">Because the right letter structure, evidence, and positioning determines whether your claim gets taken seriously.</p>
+        <p class="main-prose-800" style="text-align:center; font-size:1.1rem; color:#64748b; margin-bottom:3rem;">Because the right letter structure, evidence, and positioning determines whether your claim gets taken seriously.</p>
         
         <div style="overflow-x:auto; background:#ffffff; border-radius:12px; box-shadow:0 4px 14px rgba(15, 23, 42, 0.06);">
           <table style="width:100%; border-collapse:collapse; font-size:1rem;">
@@ -530,12 +692,12 @@
           </table>
         </div>
 
-        <div style="background:#f8fafc; border:2px solid #64748b; border-radius:12px; padding:30px; margin-top:3rem; max-width:850px; margin-left:auto; margin-right:auto;">
+        <div class="main-card-850-mt-auto" style="background:#f8fafc; border:2px solid #64748b; border-radius:12px; padding:30px; margin-top:3rem;">
           <p style="color:#1e293b; line-height:1.9; margin:0 0 1rem 0; font-size:1.15rem; text-align:center; font-weight:600;">Claim letters are often ignored because they are generic, incomplete, or improperly structured.</p>
           <p style="color:#1e293b; line-height:1.9; margin:0; font-size:1.15rem; text-align:center; font-weight:600;">This ensures your position is clearly documented and presented in a way that requires review.</p>
         </div>
 
-        <div style="margin-top:3rem; max-width:950px; margin-left:auto; margin-right:auto;">
+        <div class="main-block-950-mt">
           <h3 style="color:#1e293b; font-size:1.5rem; margin-bottom:20px; text-align:center; font-weight:700;">Example Letter Difference</h3>
           
           <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:25px;">
@@ -551,7 +713,7 @@
           </div>
         </div>
 
-        <div style="background:#f0f9ff; border:2px solid #3b82f6; border-radius:12px; padding:30px; margin-top:3rem; max-width:900px; margin-left:auto; margin-right:auto;">
+        <div class="main-card-900-mt" style="background:#f0f9ff; border:2px solid #3b82f6; border-radius:12px; padding:30px;">
           <h3 style="color:#1e40af; font-size:1.5rem; margin-bottom:15px; text-align:center; font-weight:700;">Why Most Claim Letters Fail</h3>
           <ul style="color:#1f2937; line-height:1.9; font-size:1.05rem; margin:0; padding-left:20px;">
             <li style="margin-bottom:12px;"><strong>No structure:</strong> Generic templates don't match the specific type of claim letter you received.</li>
@@ -570,10 +732,10 @@
 
     <!-- ROI CALCULATOR -->
     <section style="padding:80px 0; background:#f8fafc; color:#2d3748;">
-      <div style="width:min(1120px, 92%); margin-inline:auto;">
+      <div class="main-wrap">
         <h2 style="text-align:center; font-size:2.8rem; margin-bottom:2rem; color:#2d3748; font-weight:800;">The Math Is Simple</h2>
         
-        <div style="max-width:700px; margin:0 auto; background:#ffffff; border:3px solid #22c55e; border-radius:16px; padding:40px; box-shadow:0 8px 24px rgba(34, 197, 94, 0.15);">
+        <div class="main-roi-card" style="background:#ffffff; border:3px solid #22c55e; border-radius:16px; padding:40px; box-shadow:0 8px 24px rgba(34, 197, 94, 0.15);">
           <div style="text-align:center; margin-bottom:2rem;">
             <label style="color:#64748b; font-size:1.1rem; display:block; margin-bottom:8px;">Your Disputed Claim Amount</label>
             <div style="display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:1.5rem;">
@@ -616,10 +778,10 @@
 
     <!-- FINAL CTA -->
     <section style="text-align:center; padding:80px 0; background:#0f172a; color:#ffffff;">
-      <div style="width:min(1120px, 92%); margin-inline:auto;">
+      <div class="main-wrap">
         <h2 style="font-size:3rem; margin-bottom:2rem; font-weight:900; color:#ffffff; line-height:1.2;">Get Your Letter Now</h2>
-        <p style="color:#d1d5db; margin:0 auto 2rem; font-size:1.3rem; max-width:800px; line-height:1.7; font-weight:500;">Upload the letter from your insurance company. Get professional correspondence that demands payment—or get told why you need an attorney before it's too late.</p>
-        <p style="color:#cbd5e1; margin:0 auto 3rem; font-size:1.1rem; max-width:750px; line-height:1.7; font-weight:500;">The goal is simple: give you a stronger, clearer, and more defensible position than you would submit on your own.</p>
+        <p class="main-cta-p-lead" style="color:#d1d5db; font-size:1.3rem; line-height:1.7; font-weight:500;">Upload the letter from your insurance company. Get professional correspondence that demands payment—or get told why you need an attorney before it's too late.</p>
+        <p class="main-cta-p-sub" style="color:#cbd5e1; font-size:1.1rem; line-height:1.7; font-weight:500;">The goal is simple: give you a stronger, clearer, and more defensible position than you would submit on your own.</p>
         <a href="/claim-defense.html" style="display:inline-block; padding:22px 50px; font-weight:800; text-decoration:none; border-radius:12px; background:#22c55e; color:#ffffff; box-shadow:0 8px 24px rgba(34, 197, 94, 0.5); font-size:1.4rem; text-transform:uppercase; letter-spacing:0.5px;">Analyze My Claim Free →</a>
       </div>
     </section>
