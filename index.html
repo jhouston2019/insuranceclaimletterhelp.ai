@@ -23,6 +23,16 @@
   <!-- Ads CSS -->
   <link rel="stylesheet" href="/src/ads.css">
   <style>
+    html {
+      -webkit-text-size-adjust: 100%;
+    }
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+    img, video {
+      max-width: 100%;
+      height: auto;
+    }
     .platform-preview-section {
       background: #0f172a;
       padding: 80px 0;
@@ -243,6 +253,47 @@
         margin-left: 0;
         margin-right: 0;
         box-sizing: border-box;
+      }
+
+      html,
+      body {
+        overflow-x: hidden;
+        max-width: 100%;
+      }
+      main {
+        max-width: 100%;
+      }
+      body > nav {
+        flex-wrap: wrap;
+        row-gap: 0.35rem;
+        max-width: 100%;
+      }
+      .main-wrap {
+        min-width: 0;
+        padding-left: max(16px, env(safe-area-inset-left, 0px));
+        padding-right: max(16px, env(safe-area-inset-right, 0px));
+      }
+      main [style*="grid-template-columns:repeat(2, 1fr)"],
+      main [style*="grid-template-columns:repeat(3, 1fr)"],
+      main [style*="grid-template-columns:repeat(4, 1fr)"],
+      main [style*="grid-template-columns:1fr 1fr"] {
+        grid-template-columns: 1fr !important;
+      }
+      .main-compare-scroll {
+        max-width: 100%;
+        min-width: 0;
+        -webkit-overflow-scrolling: touch;
+      }
+      .main-compare-scroll th,
+      .main-compare-scroll td {
+        padding: 10px 8px !important;
+        font-size: 0.88rem !important;
+      }
+      footer > div {
+        width: 100% !important;
+        max-width: 100%;
+        padding-left: max(16px, env(safe-area-inset-left, 0px));
+        padding-right: max(16px, env(safe-area-inset-right, 0px));
       }
     }
   </style>
@@ -638,7 +689,7 @@
         <h2 style="text-align:center; font-size:2.8rem; margin-bottom:1rem; color:#2d3748; font-weight:800;">Why Policyholders Use Insurance Claim Response Pro</h2>
         <p class="main-prose-800" style="text-align:center; font-size:1.1rem; color:#64748b; margin-bottom:3rem;">Because the right letter structure, evidence, and positioning determines whether your claim gets taken seriously.</p>
         
-        <div style="overflow-x:auto; background:#ffffff; border-radius:12px; box-shadow:0 4px 14px rgba(15, 23, 42, 0.06);">
+        <div class="main-compare-scroll" style="overflow-x:auto; background:#ffffff; border-radius:12px; box-shadow:0 4px 14px rgba(15, 23, 42, 0.06);">
           <table style="width:100%; border-collapse:collapse; font-size:1rem;">
             <thead>
               <tr style="background:#f8fafc;">
