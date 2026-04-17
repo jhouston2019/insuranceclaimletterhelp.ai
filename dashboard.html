@@ -32,13 +32,13 @@
                 <div id="recentLetters">
                     <p style="color:#4a5568;">Loading your letters...</p>
                 </div>
-                <a href="/payment.html" style="background:#334155; color:white; padding:14px 28px; border:none; border-radius:10px; cursor:pointer; font-family:'Inter',sans-serif; font-size:1rem; font-weight:600; transition:all 0.3s ease; text-transform:uppercase; letter-spacing:0.5px; text-decoration:none; display:inline-block; margin-top:1rem;">Upload New Letter</a>
+                <a href="/claim-defense.html" style="background:#334155; color:white; padding:14px 28px; border:none; border-radius:10px; cursor:pointer; font-family:'Inter',sans-serif; font-size:1rem; font-weight:600; transition:all 0.3s ease; text-transform:uppercase; letter-spacing:0.5px; text-decoration:none; display:inline-block; margin-top:1rem;">Upload New Letter</a>
             </div>
             
             <div style="background:#ffffff; padding:2rem; border-radius:12px; box-shadow:0 4px 6px rgba(0,0,0,0.1); color:#2d3748; border:1px solid #e2e8f0;">
                 <h3 style="color:#2d3748; font-size:1.5rem; margin-bottom:1rem;">Quick Actions</h3>
                 <div style="display:flex; flex-direction:column; gap:1rem;">
-                    <a href="/payment.html" style="background:#334155; color:white; padding:14px 28px; border:none; border-radius:10px; cursor:pointer; font-family:'Inter',sans-serif; font-size:1rem; font-weight:600; transition:all 0.3s ease; text-transform:uppercase; letter-spacing:0.5px; text-decoration:none; display:inline-block; text-align:center;">Analyze New Letter</a>
+                    <a href="/claim-defense.html" style="background:#334155; color:white; padding:14px 28px; border:none; border-radius:10px; cursor:pointer; font-family:'Inter',sans-serif; font-size:1rem; font-weight:600; transition:all 0.3s ease; text-transform:uppercase; letter-spacing:0.5px; text-decoration:none; display:inline-block; text-align:center;">Analyze New Letter</a>
                     <a href="/pricing.html" style="background:#6c757d; color:white; padding:14px 28px; border:none; border-radius:10px; cursor:pointer; font-family:'Inter',sans-serif; font-size:1rem; font-weight:600; transition:all 0.3s ease; text-transform:uppercase; letter-spacing:0.5px; text-decoration:none; display:inline-block; text-align:center;">Upgrade Plan</a>
                 </div>
             </div>
@@ -92,7 +92,7 @@
             const container = document.getElementById('recentLetters');
             
             if (documents.length === 0) {
-                container.innerHTML = '<p>No letters uploaded yet. <a href="/payment.html">Upload your first letter</a></p>';
+                container.innerHTML = '<p>No letters uploaded yet. <a href="/claim-defense.html">Analyze your first claim →</a></p>';
                 return;
             }
             
@@ -112,7 +112,7 @@
             statusDiv.innerHTML = `
                 <p><strong>Email:</strong> ${currentUser.email}</p>
                 <p><strong>Member since:</strong> ${new Date(currentUser.created_at).toLocaleDateString()}</p>
-                <p><strong>Plan:</strong> Free</p>
+                <p><strong>Plan:</strong> Active</p>
             `;
         }
     </script>
