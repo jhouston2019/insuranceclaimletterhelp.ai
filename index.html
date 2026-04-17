@@ -345,19 +345,60 @@
       </div>
     </section>
 
-    <!-- PLATFORM PREVIEW (dashboard / app screenshot) -->
-    <section class="platform-preview-section" aria-label="Platform preview">
-      <div class="dashboard-visual-wrapper">
-        <div class="platform-screenshot-container">
-          <div class="workflow-steps-grid" aria-label="Claim workflow in four steps: input, analysis, strategy, and letter">
-            <img src="/images/wizard-step1.png" width="1200" height="800" alt="Step 1: paste the carrier denial and claim details" loading="lazy" decoding="async">
-            <img src="/images/wizard-step2.png" width="1200" height="800" alt="Step 2: structured claim analysis with risk and dispute angles" loading="lazy" decoding="async">
-            <img src="/images/wizard-step3.png" width="1200" height="800" alt="Step 3: choose a response strategy" loading="lazy" decoding="async">
-            <img src="/images/wizard-step4.png" width="1200" height="800" alt="Step 4: dispute letter with downloads" loading="lazy" decoding="async">
+    <!-- Platform preview: inline wizard mockup (no image assets) -->
+    <section style="background:#0f172a; padding:80px 0;">
+      <div style="width:min(1120px,92%); margin-inline:auto;">
+        <h2 style="text-align:center; color:#ffffff; font-size:2.2rem; font-weight:800; margin-bottom:3rem;">See How It Works</h2>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:24px;">
+
+          <div style="background:#1e293b; border-radius:12px; overflow:hidden; border:1px solid #334155;">
+            <div style="background:#22c55e; padding:10px 16px; font-size:12px; font-weight:700; color:#fff; text-transform:uppercase; letter-spacing:1px;">Step 1 — Input</div>
+            <div style="padding:20px;">
+              <div style="background:#0f172a; border-radius:8px; padding:12px; margin-bottom:12px; font-size:12px; color:#94a3b8; font-family:monospace; line-height:1.6;">ACME Insurance<br>Claim No: CLM-2024-847291<br>Re: Denial of covered loss<br>...</div>
+              <div style="background:#1e293b; border:1px solid #334155; border-radius:6px; padding:8px 12px; font-size:12px; color:#cbd5e1; margin-bottom:8px;">📎 Upload PDF or paste letter</div>
+              <div style="background:#22c55e; border-radius:6px; padding:8px 12px; font-size:12px; color:#fff; font-weight:700; text-align:center;">Analyze My Claim →</div>
+            </div>
           </div>
+
+          <div style="background:#1e293b; border-radius:12px; overflow:hidden; border:1px solid #334155;">
+            <div style="background:#f59e0b; padding:10px 16px; font-size:12px; font-weight:700; color:#fff; text-transform:uppercase; letter-spacing:1px;">Step 2 — Analysis</div>
+            <div style="padding:20px;">
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px;">
+                <div style="background:#0f172a; border-radius:6px; padding:8px; text-align:center;"><div style="color:#f59e0b; font-size:16px; font-weight:800;">HIGH</div><div style="color:#64748b; font-size:10px;">Risk Level</div></div>
+                <div style="background:#0f172a; border-radius:6px; padding:8px; text-align:center;"><div style="color:#22c55e; font-size:16px; font-weight:800;">$18,400</div><div style="color:#64748b; font-size:10px;">Disputed</div></div>
+              </div>
+              <div style="background:#451a03; border:1px solid #92400e; border-radius:6px; padding:10px; font-size:11px; color:#fbbf24;">⚠ No engineer report obtained<br>⚠ Wear & tear applied without scope</div>
+            </div>
+          </div>
+
+          <div style="background:#1e293b; border-radius:12px; overflow:hidden; border:1px solid #334155;">
+            <div style="background:#3b82f6; padding:10px 16px; font-size:12px; font-weight:700; color:#fff; text-transform:uppercase; letter-spacing:1px;">Step 3 — Strategy</div>
+            <div style="padding:20px;">
+              <div style="border:2px solid #3b82f6; border-radius:8px; padding:10px; margin-bottom:8px; background:#1e3a5f;">
+                <div style="font-size:11px; font-weight:700; color:#60a5fa; margin-bottom:4px;">★ RECOMMENDED</div>
+                <div style="font-size:13px; font-weight:700; color:#fff;">Full Dispute</div>
+                <div style="font-size:11px; color:#94a3b8; margin-top:4px;">Contest denial entirely based on procedural defects</div>
+              </div>
+              <div style="background:#0f172a; border-radius:6px; padding:8px; font-size:11px; color:#64748b;">+ Partial Dispute · Re-Inspection · Appraisal</div>
+            </div>
+          </div>
+
+          <div style="background:#1e293b; border-radius:12px; overflow:hidden; border:1px solid #334155;">
+            <div style="background:#8b5cf6; padding:10px 16px; font-size:12px; font-weight:700; color:#fff; text-transform:uppercase; letter-spacing:1px;">Step 4 — Letter</div>
+            <div style="padding:20px;">
+              <div style="background:#0f172a; border-radius:6px; padding:10px; font-size:11px; color:#cbd5e1; line-height:1.7; margin-bottom:12px; font-family:Georgia,serif;">SECTION I — BACKGROUND:<br>I filed a claim with ACME Insurance on Sept 15, 2024...<br><br>SECTION II — BASIS FOR DISPUTE:<br>The denial fails to cite an engineer report...</div>
+              <div style="display:flex; gap:8px;">
+                <div style="flex:1; background:#334155; border-radius:6px; padding:6px; font-size:10px; color:#94a3b8; text-align:center;">📄 PDF</div>
+                <div style="flex:1; background:#334155; border-radius:6px; padding:6px; font-size:10px; color:#94a3b8; text-align:center;">📝 Word</div>
+                <div style="flex:1; background:#334155; border-radius:6px; padding:6px; font-size:10px; color:#94a3b8; text-align:center;">📋 Copy</div>
+              </div>
+            </div>
+          </div>
+
         </div>
-        <h2 class="platform-callout-title">Your letter workflow, in one place</h2>
-        <p class="platform-callout-body">Upload the carrier’s letter, review the structured response outline, and download correspondence formatted for submission.</p>
+        <div style="text-align:center; margin-top:3rem;">
+          <a href="/claim-defense.html" style="display:inline-block; padding:18px 44px; font-weight:800; text-decoration:none; border-radius:12px; background:#22c55e; color:#ffffff; box-shadow:0 8px 24px rgba(34,197,94,0.5); font-size:1.2rem; text-transform:uppercase; letter-spacing:0.5px;">Try It Now — Free Analysis →</a>
+        </div>
       </div>
     </section>
 

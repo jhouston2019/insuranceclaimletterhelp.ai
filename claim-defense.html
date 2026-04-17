@@ -1031,6 +1031,13 @@ Phone: 1-800-555-0100`;
     });
 
     document.getElementById('btnGenerate').addEventListener('click', async () => {
+      // Payment gate — check if user has paid
+      const hasPaid = localStorage.getItem('wizardPaid') === 'true' ||
+                      state.accessToken === 'bypass';
+      if (!hasPaid) {
+        window.location.href = '/payment.html?return=/claim-defense.html';
+        return;
+      }
       showErr('step3Error', '');
       const additional = state.strategy === 'other'
         ? document.getElementById('customStrategyText').value

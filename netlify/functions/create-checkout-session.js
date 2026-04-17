@@ -9,8 +9,11 @@ export async function handler(event) {
     console.log('STRIPE_SECRET_KEY:', process.env.STRIPE_SECRET_KEY ? 'Set' : 'Missing');
     console.log('STRIPE_PRICE_RESPONSE:', process.env.STRIPE_PRICE_RESPONSE);
     
-    const { recordId = null } = JSON.parse(event.body || "{}"); // send from client if available
+    const { recordId = null, return: returnPath = '' } = JSON.parse(event.body || "{}");
     const priceId = process.env.STRIPE_PRICE_RESPONSE || "price_19USD_single";
+    const successSuffix = returnPath
+      ? `thank-you.html?return=${encodeURIComponent(returnPath)}`
+      : 'thank-you.html';
     
     // Validate required environment variables
     if (!process.env.SITE_URL) {
@@ -27,7 +30,7 @@ export async function handler(event) {
         quantity: 1 
       }],
       mode: 'payment',
-      success_url: `${process.env.SITE_URL}/thank-you.html`,
+      success_url: `${process.env.SITE_URL}/${successSuffix}`,
       cancel_url: `${process.env.SITE_URL}/pricing.html`,
       metadata: recordId ? { recordId } : { plan: 'single' }
     });
