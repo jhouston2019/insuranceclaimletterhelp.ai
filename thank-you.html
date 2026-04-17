@@ -14,13 +14,30 @@
     <a href="/claim-defense.html" style="display:inline-block; margin-top:30px; background:#22c55e; color:#fff; padding:14px 28px; border-radius:6px; text-decoration:none;">Start Your Claim Analysis →</a>
   </div>
   <script>
-    localStorage.setItem('wizardPaid', 'true');
-    // If return URL is set, redirect there after 2 seconds
-    const params = new URLSearchParams(window.location.search);
-    const returnUrl = params.get('return');
-    if (returnUrl) {
+    async function handlePostPayment() {
+      const params = new URLSearchParams(window.location.search);
+      const sessionId = params.get('session_id');
+      const returnUrl = params.get('return') || '/claim-defense.html';
+
+      if (sessionId) {
+        try {
+          const res = await fetch('/.netlify/functions/verify-payment-session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sessionId })
+          });
+          const data = await res.json();
+          if (data.token) {
+            sessionStorage.setItem('wizardToken', data.token);
+            localStorage.setItem('wizardPaid', 'true');
+          }
+        } catch(e) { console.error('Payment verification failed', e); }
+      } else {
+        localStorage.setItem('wizardPaid', 'true');
+      }
       setTimeout(() => { window.location.href = returnUrl; }, 2000);
     }
+    handlePostPayment();
   </script>
 </body>
 </html>

@@ -56,7 +56,7 @@
 
     <div class="test-section">
         <h2>2. Test Access Control</h2>
-        <button class="test-button" onclick="testUploadAccess()">Test Upload Page Access</button>
+        <button class="test-button" onclick="testUploadAccess()">Test Wizard Letter Gate (token)</button>
         <button class="test-button" onclick="testDashboardAccess()">Test Dashboard Access</button>
         <div id="accessResults"></div>
     </div>
@@ -66,7 +66,7 @@
         <button class="test-button" onclick="window.location.href='/index.html'">Go to Homepage</button>
         <button class="test-button" onclick="window.location.href='/payment.html'">Go to Payment Page</button>
         <button class="test-button" onclick="window.location.href='/success.html'">Go to Success Page</button>
-        <button class="test-button" onclick="window.location.href='/upload.html'">Test Upload Page (Should Redirect if Unpaid)</button>
+        <button class="test-button" onclick="window.location.href='/claim-defense.html'">Open Claim Defense Wizard</button>
         <button class="test-button" onclick="window.location.href='/dashboard.html'">Test Dashboard (Should Redirect if Unpaid)</button>
     </div>
 
@@ -80,8 +80,8 @@
         <h2>📋 Test Checklist</h2>
         <ul>
             <li>✅ Payment page created with Stripe integration</li>
-            <li>✅ Success page sets localStorage flag</li>
-            <li>✅ Upload page checks payment status</li>
+            <li>✅ Thank-you page verifies Stripe session and sets wizardToken</li>
+            <li>✅ Wizard letter step requires session wizardToken (or bypass)</li>
             <li>✅ Dashboard page checks payment status</li>
             <li>✅ Homepage CTA buttons redirect to payment</li>
             <li>✅ Navigation links redirect to payment</li>
@@ -91,35 +91,41 @@
 
     <script>
         function checkPaymentStatus() {
-            const hasPaid = localStorage.getItem('paid') === 'true';
+            const legacyPaid = localStorage.getItem('paid') === 'true';
+            const wizardPaid = localStorage.getItem('wizardPaid') === 'true';
+            const wizardToken = !!sessionStorage.getItem('wizardToken');
             const statusDiv = document.getElementById('paymentStatus');
-            statusDiv.innerHTML = `<div class="status ${hasPaid ? 'success' : 'error'}">
-                Payment Status: ${hasPaid ? '✅ PAID' : '❌ NOT PAID'}
+            statusDiv.innerHTML = `<div class="status ${wizardToken ? 'success' : 'error'}">
+                Legacy paid flag: ${legacyPaid ? 'yes' : 'no'} · wizardPaid: ${wizardPaid ? 'yes' : 'no'} · wizardToken (session): ${wizardToken ? '✅ SET' : '❌ MISSING'}
             </div>`;
         }
 
         function clearPaymentStatus() {
             localStorage.removeItem('paid');
+            localStorage.removeItem('wizardPaid');
+            sessionStorage.removeItem('wizardToken');
             checkPaymentStatus();
-            document.getElementById('accessResults').innerHTML = '<div class="status info">Payment status cleared. Try accessing protected pages now.</div>';
+            document.getElementById('accessResults').innerHTML = '<div class="status info">Wizard payment flags cleared. Generate on the wizard should send you to payment.</div>';
         }
 
         function setPaymentStatus() {
             localStorage.setItem('paid', 'true');
+            localStorage.setItem('wizardPaid', 'true');
+            sessionStorage.setItem('wizardToken', btoa('test:0:paid'));
             checkPaymentStatus();
-            document.getElementById('accessResults').innerHTML = '<div class="status success">Payment status set. You should now have access to protected pages.</div>';
+            document.getElementById('accessResults').innerHTML = '<div class="status success">Simulated post-checkout flags set (including wizardToken).</div>';
         }
 
         function testUploadAccess() {
-            const hasPaid = localStorage.getItem('paid') === 'true';
-            const result = hasPaid ? 
-                '✅ Upload page should be accessible' : 
-                '❌ Upload page should redirect to payment';
-            document.getElementById('accessResults').innerHTML = `<div class="status ${hasPaid ? 'success' : 'error'}">${result}</div>`;
+            const hasToken = !!sessionStorage.getItem('wizardToken');
+            const result = hasToken ?
+                '✅ Wizard “Generate letter” gate should allow (token present)' :
+                '❌ Wizard should redirect to payment when generating letter';
+            document.getElementById('accessResults').innerHTML = `<div class="status ${hasToken ? 'success' : 'error'}">${result}</div>`;
         }
 
         function testDashboardAccess() {
-            const hasPaid = localStorage.getItem('paid') === 'true';
+            const hasPaid = localStorage.getItem('paid') === 'true' || localStorage.getItem('wizardPaid') === 'true';
             const result = hasPaid ? 
                 '✅ Dashboard should be accessible' : 
                 '❌ Dashboard should redirect to payment';

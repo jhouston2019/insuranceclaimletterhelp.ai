@@ -9,12 +9,9 @@ export async function handler(event) {
     console.log('STRIPE_SECRET_KEY:', process.env.STRIPE_SECRET_KEY ? 'Set' : 'Missing');
     console.log('STRIPE_PRICE_RESPONSE:', process.env.STRIPE_PRICE_RESPONSE);
     
-    const { recordId = null, return: returnPath = '' } = JSON.parse(event.body || "{}");
+    const { recordId = null } = JSON.parse(event.body || "{}");
     const priceId = process.env.STRIPE_PRICE_RESPONSE || "price_19USD_single";
-    const successSuffix = returnPath
-      ? `thank-you.html?return=${encodeURIComponent(returnPath)}`
-      : 'thank-you.html';
-    
+
     // Validate required environment variables
     if (!process.env.SITE_URL) {
       throw new Error('SITE_URL environment variable is not set');
@@ -30,7 +27,7 @@ export async function handler(event) {
         quantity: 1 
       }],
       mode: 'payment',
-      success_url: `${process.env.SITE_URL}/${successSuffix}`,
+      success_url: `${process.env.SITE_URL}/thank-you.html?session_id={CHECKOUT_SESSION_ID}&return=/claim-defense.html`,
       cancel_url: `${process.env.SITE_URL}/pricing.html`,
       metadata: recordId ? { recordId } : { plan: 'single' }
     });
