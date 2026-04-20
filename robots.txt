@@ -45,7 +45,6 @@ Disallow: /dashboard.html
 Disallow: /payment
 Disallow: /payment.html
 Disallow: /checkout
-Disallow: /checkout.js
 Disallow: /success
 Disallow: /success.html
 Disallow: /cancel

@@ -49,42 +49,46 @@ function updateNavigationForGuest() {
   }
 }
 
-// Global checkout function for pricing buttons
-window.startCheckout = async function(plan) {
+// Global checkout — Stripe collects email; optional logged-in supabase_user_id for linkage
+window.startCheckout = async function (plan, evt) {
   try {
-    // Check if user is logged in
     const user = await getCurrentUser();
-    if (!user) {
-      alert('Please login to purchase a plan');
-      window.location.href = '/login.html';
-      return;
+    const button = evt && evt.target ? evt.target : null;
+    const originalText = button ? button.textContent : '';
+    if (button) {
+      button.textContent = 'Processing...';
+      button.disabled = true;
     }
-
-    // Show loading state
-    const button = event.target;
-    const originalText = button.textContent;
-    button.textContent = 'Processing...';
-    button.disabled = true;
 
     const response = await fetch('/.netlify/functions/create-checkout-session', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ plan: plan })
+      body: JSON.stringify({
+        plan: plan || 'single',
+        supabase_user_id: user?.id || null
+      })
     });
-    
+
     const data = await response.json();
-    
+
     if (data.url) {
+      try {
+        if (data.id) localStorage.setItem('last_checkout_session_id', data.id);
+      } catch (_) {}
       window.location.href = data.url;
     } else {
-      alert('Failed to create checkout session: ' + (data.error || 'Unknown error'));
-      button.textContent = originalText;
-      button.disabled = false;
+      alert('Failed to create checkout session: ' + (data.error || data.details || 'Unknown error'));
+      if (button) {
+        button.textContent = originalText || 'Try Again';
+        button.disabled = false;
+      }
     }
   } catch (error) {
     alert('Failed to start checkout: ' + error.message);
-    const button = event.target;
-    button.textContent = button.getAttribute('data-original-text') || 'Try Again';
-    button.disabled = false;
+    const button = evt && evt.target ? evt.target : null;
+    if (button) {
+      button.textContent = button.getAttribute('data-original-text') || 'Try Again';
+      button.disabled = false;
+    }
   }
 };

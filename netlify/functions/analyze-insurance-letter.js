@@ -33,6 +33,7 @@ const { getSupabaseAdmin } = require("./_supabase");
 const { checkRateLimit, getRateLimitKey, getRateLimitForAction } = require("./rate-limiter");
 const { validateClassification, sanitizeText } = require("./input-validator");
 const { verifyPayment } = require("./payment-enforcer");
+const { recordReviewUsageIncrement } = require("./_billing-snapshot");
 
 exports.handler = async (event) => {
   console.log('=== INSURANCE LETTER ANALYSIS START ===');
@@ -485,6 +486,14 @@ Be factual. Be brief. Do not advise.`;
       }
     }
     
+    if (userId && typeof userId === "string") {
+      try {
+        await recordReviewUsageIncrement(userId);
+      } catch (usageErr) {
+        console.warn("recordReviewUsageIncrement:", usageErr);
+      }
+    }
+
     // STEP 12: RETURN RESULTS
     return {
       statusCode: 200,

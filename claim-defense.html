@@ -173,7 +173,7 @@
       <a href="/">Home</a>
       <a href="/pricing.html">Pricing</a>
       <a href="/login.html">Sign in</a>
-      <a href="/payment.html">Purchase access</a>
+      <a href="/pricing">Purchase access</a>
     </div>
   </nav>
 
@@ -1036,7 +1036,7 @@ Phone: 1-800-555-0100`;
       const wizardToken = sessionStorage.getItem('wizardToken');
       const hasPaid = !!wizardToken || state.accessToken === 'bypass';
       if (!hasPaid) {
-        window.location.href = '/payment.html?return=/claim-defense.html';
+        window.location.href = '/pricing';
         return;
       }
       showErr('step3Error', '');

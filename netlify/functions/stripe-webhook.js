@@ -1,19 +1,23 @@
-import Stripe from "stripe";
-import { buffer } from "micro";
-import { getSupabaseAdmin } from "./_supabase.js";
+const Stripe = require("stripe");
+const { getSupabaseAdmin } = require("./_supabase");
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
 
-export const config = { path: "/.netlify/functions/stripe-webhook" };
-
-export async function handler(event) {
+exports.handler = async (event) => {
   try {
-    const sig = event.headers["stripe-signature"];
-    const rawBody = event.isBase64Encoded ? Buffer.from(event.body, "base64") : Buffer.from(event.body || "");
-    let evt;
+    const sig =
+      event.headers["stripe-signature"] || event.headers["Stripe-Signature"];
+    const rawBody = event.isBase64Encoded
+      ? Buffer.from(event.body, "base64")
+      : Buffer.from(event.body || "");
 
+    let evt;
     try {
-      evt = stripe.webhooks.constructEvent(rawBody, sig, process.env.STRIPE_WEBHOOK_SECRET);
+      evt = stripe.webhooks.constructEvent(
+        rawBody,
+        sig,
+        process.env.STRIPE_WEBHOOK_SECRET
+      );
     } catch (err) {
       return { statusCode: 400, body: `Webhook Error: ${err.message}` };
     }
@@ -21,98 +25,134 @@ export async function handler(event) {
     if (evt.type === "checkout.session.completed") {
       const session = evt.data.object;
       const recordId = session.metadata?.recordId || null;
-      const customerEmail = session.customer_details?.email || session.customer_email;
-
-      console.log('Checkout completed:', {
-        sessionId: session.id,
-        recordId,
-        email: customerEmail,
-        paymentStatus: session.payment_status
-      });
+      const stripeCustomerId =
+        typeof session.customer === "string"
+          ? session.customer
+          : session.customer?.id || null;
+      const metaUid = session.metadata?.supabase_user_id || null;
+      const plan =
+        session.metadata?.plan_type ||
+        session.metadata?.plan ||
+        "single";
 
       const supabase = getSupabaseAdmin();
 
+      let userId = metaUid || null;
+
+      if (!userId && stripeCustomerId && session.payment_status === "paid") {
+        const { data: ent } = await supabase
+          .from("user_entitlements")
+          .select("user_id")
+          .eq("stripe_customer_id", stripeCustomerId)
+          .maybeSingle();
+        userId = ent?.user_id || null;
+      }
+
+      if (userId && session.payment_status === "paid" && stripeCustomerId) {
+        await supabase.from("user_entitlements").upsert(
+          {
+            user_id: userId,
+            stripe_customer_id: stripeCustomerId,
+            plan_type: plan,
+            paid: true,
+            active: true,
+            last_checkout_session_id: session.id,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id" }
+        );
+
+        await supabase.from("processed_sessions").upsert(
+          {
+            stripe_checkout_session_id: session.id,
+            status: "completed",
+            user_id: userId,
+            completed_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "stripe_checkout_session_id" }
+        );
+
+        console.log(
+          JSON.stringify({
+            event: "webhook_completed",
+            session_id: session.id,
+            user_id: userId,
+            source: "stripe_webhook",
+            ts: new Date().toISOString(),
+          })
+        );
+
+        console.log(
+          JSON.stringify({
+            event: "PAYMENT_FLOW_COMPLETE",
+            session_id: session.id,
+            user_id: userId,
+            source: "webhook",
+            status: "paid",
+            ts: new Date().toISOString(),
+          })
+        );
+      } else {
+        console.log(
+          JSON.stringify({
+            event: "webhook_skipped_no_user",
+            session_id: session.id,
+            payment_status: session.payment_status,
+            ts: new Date().toISOString(),
+          })
+        );
+      }
+
       if (recordId) {
-        // Update specific record
         const { error } = await supabase
           .from("claim_letters")
           .update({
             stripe_session_id: session.id,
             stripe_payment_status: session.payment_status,
-            payment_status: 'paid',
-            letter_generated: false, // Explicitly mark as not yet generated
-            updated_at: new Date().toISOString()
+            payment_status: "paid",
+            letter_generated: false,
+            updated_at: new Date().toISOString(),
           })
           .eq("id", recordId);
 
         if (error) {
-          console.error('Failed to update record:', error);
-          
-          // Check if it's a unique constraint violation (session ID reuse attempt)
-          if (error.code === '23505') {
-            console.error('🚨 SECURITY ALERT: Attempted reuse of Stripe session ID:', session.id);
-          }
-        } else {
-          console.log('✅ Payment verified for record:', recordId);
-        }
-      } else if (customerEmail) {
-        // Create payment record for user
-        const { error } = await supabase
-          .from("claim_letters")
-          .insert({
-            user_email: customerEmail,
-            stripe_session_id: session.id,
-            stripe_payment_status: session.payment_status,
-            payment_status: 'paid',
-            letter_generated: false, // One payment = one letter (not yet used)
-            status: 'payment_completed',
-            file_name: 'pending_upload',
-            file_path: 'pending_upload'
-          });
-
-        if (error) {
-          console.error('Failed to create payment record:', error);
-          
-          // Check if it's a unique constraint violation (session ID reuse attempt)
-          if (error.code === '23505') {
-            console.error('🚨 SECURITY ALERT: Attempted reuse of Stripe session ID:', session.id);
-          }
-        } else {
-          console.log('✅ Payment record created for:', customerEmail);
+          console.error("Failed to update claim_letters record:", error);
         }
       }
     }
 
-    // Handle subscription events (if using subscriptions)
-    if (evt.type === "customer.subscription.created" || 
-        evt.type === "customer.subscription.updated") {
+    if (
+      evt.type === "customer.subscription.created" ||
+      evt.type === "customer.subscription.updated"
+    ) {
       const subscription = evt.data.object;
       const customerId = subscription.customer;
-
       const supabase = getSupabaseAdmin();
-      
-      // Update or create subscription record
-      await supabase
-        .from("subscriptions")
-        .upsert({
+
+      await supabase.from("subscriptions").upsert(
+        {
           stripe_customer_id: customerId,
           stripe_subscription_id: subscription.id,
           status: subscription.status,
-          plan_type: subscription.metadata?.plan_type || 'STANDARD',
-          current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-          current_period_end: new Date(subscription.current_period_end * 1000).toISOString()
-        }, {
-          onConflict: 'stripe_subscription_id'
-        });
+          plan_type: subscription.metadata?.plan_type || "STANDARD",
+          current_period_start: new Date(
+            subscription.current_period_start * 1000
+          ).toISOString(),
+          current_period_end: new Date(
+            subscription.current_period_end * 1000
+          ).toISOString(),
+        },
+        { onConflict: "stripe_subscription_id" }
+      );
     }
 
     if (evt.type === "customer.subscription.deleted") {
       const subscription = evt.data.object;
-      
       const supabase = getSupabaseAdmin();
       await supabase
         .from("subscriptions")
-        .update({ status: 'canceled' })
+        .update({ status: "canceled" })
         .eq("stripe_subscription_id", subscription.id);
     }
 
@@ -120,4 +160,4 @@ export async function handler(event) {
   } catch (e) {
     return { statusCode: 500, body: e.message };
   }
-}
+};

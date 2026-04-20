@@ -2,42 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Payment Successful - Insurance Claim Response Pro</title>
-  <link rel="canonical" href="https://insuranceclaimletterhelp.com/thank-you.html">
-  <link rel="stylesheet" href="/styles.css" />
-</head>
-<body style="background:#0f1e35; color:#fff; font-family:'Inter',sans-serif;">
-  <div style="text-align:center; padding:60px 20px;">
-    <h1>✅ Payment Successful</h1>
-    <p>Thank you for your purchase. You can now upload your insurance claim letter and generate your response below.</p>
-    <a href="/claim-defense.html" style="display:inline-block; margin-top:30px; background:#22c55e; color:#fff; padding:14px 28px; border-radius:6px; text-decoration:none;">Start Your Claim Analysis →</a>
-  </div>
+  <title>Redirecting…</title>
   <script>
-    async function handlePostPayment() {
-      const params = new URLSearchParams(window.location.search);
-      const sessionId = params.get('session_id');
-      const returnUrl = params.get('return') || '/claim-defense.html';
-
-      if (sessionId) {
-        try {
-          const res = await fetch('/.netlify/functions/verify-payment-session', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sessionId })
-          });
-          const data = await res.json();
-          if (data.token) {
-            sessionStorage.setItem('wizardToken', data.token);
-            localStorage.setItem('wizardPaid', 'true');
-          }
-        } catch(e) { console.error('Payment verification failed', e); }
-      } else {
-        localStorage.setItem('wizardPaid', 'true');
-      }
-      setTimeout(() => { window.location.href = returnUrl; }, 2000);
-    }
-    handlePostPayment();
+    window.location.replace('/success' + window.location.search);
   </script>
+</head>
+<body style="background:#0f1e35; color:#fff; font-family:sans-serif; text-align:center; padding:3rem;">
+  <p><a href="/success" style="color:#93c5fd;">Continue to confirmation</a></p>
 </body>
 </html>

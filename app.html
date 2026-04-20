@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="supabase-url" content="%%SUPABASE_URL%%" />
+  <meta name="supabase-anon-key" content="%%SUPABASE_ANON_KEY%%" />
+  <title>App</title>
+</head>
+<body style="background:#0f172a; color:#fff; font-family:system-ui,sans-serif; margin:0;">
+  <p id="status" style="padding:2rem; text-align:center;">Checking your account…</p>
+  <script type="module">
+    const LS_SID = 'iclh_checkout_session_id';
+    const BACKOFF_MS = [1000, 2000, 3000, 5000, 4000];
+    const MAX_WAIT_MS = 15000;
+
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+    const urlMeta = document.querySelector('meta[name="supabase-url"]')?.content?.trim() || '';
+    const keyMeta = document.querySelector('meta[name="supabase-anon-key"]')?.content?.trim() || '';
+    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+    const supabase = createClient(urlMeta, keyMeta);
+
+    const qs = new URLSearchParams(window.location.search);
+    let recoverSession = qs.get('session_id') || (typeof localStorage !== 'undefined' ? localStorage.getItem(LS_SID) : null);
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      const redir = encodeURIComponent(window.location.pathname + window.location.search);
+      window.location.href = '/login.html?redirect=' + redir;
+    } else {
+      const uid = session.user.id;
+
+      async function billing() {
+        const res = await fetch('/.netlify/functions/billing-status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: uid }),
+        });
+        return res.json();
+      }
+
+      async function callVerify(accessToken) {
+        if (!recoverSession || !accessToken) return { ok: false, json: null, status: 0 };
+        const vr = await fetch('/.netlify/functions/verify-payment', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: 'Bearer ' + accessToken,
+          },
+          body: JSON.stringify({ sessionId: recoverSession }),
+        });
+        let j = null;
+        try {
+          j = await vr.json();
+        } catch (_) {}
+        return { ok: vr.ok, json: j, status: vr.status };
+      }
+
+      function gotoPlan(b) {
+        try { localStorage.removeItem(LS_SID); } catch (_) {}
+        const plan = (b.plan_type || 'single').toLowerCase();
+        let target = '/dashboard';
+        if (plan === 'single') target = '/upload';
+        else if (plan === 'premier' || plan === 'enterprise') target = '/dashboard';
+        window.location.replace(target);
+      }
+
+      document.getElementById('status').textContent = 'Confirming subscription status…';
+
+      let elapsed = 0;
+      let i = 0;
+      while (elapsed < MAX_WAIT_MS) {
+        const { data: { session: s } } = await supabase.auth.getSession();
+        if (!s) {
+          const redir = encodeURIComponent(window.location.pathname + window.location.search);
+          window.location.href = '/login.html?redirect=' + redir;
+          return;
+        }
+
+        let b = await billing();
+        if (b.paid === true) {
+          gotoPlan(b);
+          return;
+        }
+
+        if (recoverSession) {
+          const vr = await callVerify(s.access_token);
+          if (vr.status === 401) {
+            const redir = encodeURIComponent(window.location.pathname + window.location.search);
+            window.location.href = '/login.html?redirect=' + redir;
+            return;
+          }
+          b = await billing();
+          if (b.paid === true) {
+            gotoPlan(b);
+            return;
+          }
+        }
+
+        document.getElementById('status').textContent = 'Confirming payment…';
+        const wait = BACKOFF_MS[Math.min(i, BACKOFF_MS.length - 1)];
+        await sleep(wait);
+        elapsed += wait;
+        i++;
+      }
+
+      document.getElementById('status').textContent = 'Payment not confirmed.';
+      window.location.replace('/recover');
+    }
+  </script>
+</body>
+</html>

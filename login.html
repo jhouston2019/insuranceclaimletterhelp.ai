@@ -3,66 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login to Your Account | Insurance Claim Response Pro</title>
-    <meta name="description" content="Sign in to your Insurance Claim Response Pro account to access your claim letter analysis and response tools.">
+    <title>Sign in | Insurance Claim Response Pro</title>
     <link rel="canonical" href="https://insuranceclaimletterhelp.com/login.html">
-    <meta property="og:title" content="Login to Your Account | Insurance Claim Response Pro">
-    <meta property="og:description" content="Sign in to your Insurance Claim Response Pro account to access your claim letter analysis and response tools.">
-    <meta property="og:image" content="https://insuranceclaimletterhelp.com/images/og-image.jpg">
-    <meta property="og:url" content="https://insuranceclaimletterhelp.com/login.html">
-    <meta property="og:type" content="website">
 </head>
 <body style="background:#0f172a; color:#ffffff; font-family:'Inter',sans-serif; margin:0; padding:0; line-height:1.5;">
     <nav style="background:#1e293b; padding:1rem; box-shadow:0 1px 4px rgba(0,0,0,0.1); display:flex; justify-content:space-between; border-bottom: 2px solid #334155;">
         <div style="color: #f5f5f5;"><strong>Insurance Claim Response Pro</strong></div>
         <div>
-            <a href="/dashboard.html" style="color: #f5f5f5; text-decoration: none; margin: 0 10px; padding: 8px 16px; border-radius: 4px; transition: background-color 0.2s, color 0.2s;">Dashboard</a> |
-            <a href="/pricing.html" style="color: #f5f5f5; text-decoration: none; margin: 0 10px; padding: 8px 16px; border-radius: 4px; transition: background-color 0.2s, color 0.2s;">Pricing</a> |
-            <a href="/login.html" style="color: #f5f5f5; text-decoration: none; margin: 0 10px; padding: 8px 16px; border-radius: 4px; transition: background-color 0.2s, color 0.2s;">Login</a>
+            <a href="/dashboard" style="color: #f5f5f5; text-decoration: none; margin: 0 10px; padding: 8px 16px; border-radius: 4px;">Dashboard</a> |
+            <a href="/pricing" style="color: #f5f5f5; text-decoration: none; margin: 0 10px; padding: 8px 16px; border-radius: 4px;">Pricing</a>
         </div>
     </nav>
 
     <div style="width:min(1120px, 92%); margin-inline:auto; padding:2rem 0;">
         <div style="max-width:500px; margin:2rem auto; padding:2rem; background:#ffffff; border-radius:12px; box-shadow:0 4px 6px rgba(0,0,0,0.1); color:#2d3748; border:1px solid #e2e8f0;">
-            <h2 style="text-align:center; margin-bottom:2rem; color:#2d3748; font-size:1.8rem;">Login to Your Account</h2>
+            <h2 style="text-align:center; margin-bottom:0.5rem; color:#2d3748; font-size:1.8rem;">Sign in with email</h2>
+            <p style="text-align:center; font-size:0.95rem; color:#64748b; margin-bottom:1.5rem;">We’ll send a secure magic link. No password required.</p>
             <form id="loginForm">
                 <div style="margin-bottom:1.5rem;">
                     <label for="email" style="display:block; margin-bottom:0.5rem; font-weight:bold; color:#2d3748;">Email</label>
-                    <input type="email" id="email" name="email" required style="width:100%; padding:14px 16px; border:2px solid #e2e8f0; border-radius:10px; font-family:'Inter',sans-serif; font-size:1rem; transition:all 0.3s ease; background:#ffffff; color:#2d3748; font-weight:400;">
+                    <input type="email" id="email" name="email" required autocomplete="email" style="width:100%; padding:14px 16px; border:2px solid #e2e8f0; border-radius:10px; font-family:'Inter',sans-serif; font-size:1rem; background:#ffffff; color:#2d3748;">
                 </div>
-                <div style="margin-bottom:1.5rem;">
-                    <label for="password" style="display:block; margin-bottom:0.5rem; font-weight:bold; color:#2d3748;">Password</label>
-                    <input type="password" id="password" name="password" required style="width:100%; padding:14px 16px; border:2px solid #e2e8f0; border-radius:10px; font-family:'Inter',sans-serif; font-size:1rem; transition:all 0.3s ease; background:#ffffff; color:#2d3748; font-weight:400;">
-                </div>
-                <button type="submit" style="background:#334155; color:white; padding:14px 28px; border:none; border-radius:10px; cursor:pointer; font-family:'Inter',sans-serif; font-size:1rem; font-weight:600; transition:all 0.3s ease; text-transform:uppercase; letter-spacing:0.5px; width:100%;">Login</button>
+                <button type="submit" style="background:#334155; color:white; padding:14px 28px; border:none; border-radius:10px; cursor:pointer; font-family:'Inter',sans-serif; font-size:1rem; font-weight:600; width:100%;">Send magic link</button>
             </form>
-            <p style="text-align: center; margin-top: 1rem; color:#2d3748;">
-                Don't have an account? <a href="/signup.html" style="color:#93c5fd; text-decoration:none;">Sign up here</a>
-            </p>
+            <p id="sent" style="display:none; text-align:center; margin-top:1rem; color:#15803d; font-weight:600;">Check your email for the link.</p>
         </div>
     </div>
 
     <script type="module">
-        import { signIn } from './src/components/Auth.js';
+        import { signInWithMagicLink } from './src/components/Auth.js';
         
+        function buildPostLoginRedirectUrl() {
+            const p = new URLSearchParams(window.location.search);
+            const r = p.get('redirect');
+            const sid = p.get('session_id');
+            let path = r && r.startsWith('/') ? r : '/app';
+            const u = new URL(path, window.location.origin);
+            if (sid) u.searchParams.set('session_id', sid);
+            return u.toString();
+        }
+
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            
-            try {
-                const { data, error } = await signIn(email, password);
-                
-                if (error) {
-                    alert('Login failed: ' + error.message);
-                } else {
-                    alert('Login successful!');
-                    window.location.href = '/dashboard.html';
-                }
-            } catch (error) {
-                alert('Login failed: ' + error.message);
+            const email = document.getElementById('email').value.trim();
+            const emailRedirectTo = buildPostLoginRedirectUrl();
+            const { error } = await signInWithMagicLink(email, emailRedirectTo);
+            if (error) {
+                alert('Could not send link: ' + error.message);
+                return;
             }
+            document.getElementById('sent').style.display = 'block';
         });
     </script>
 </body>

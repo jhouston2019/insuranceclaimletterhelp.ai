@@ -1,80 +1,221 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Payment Successful - Insurance Claim Response Pro</title>
-    <link rel="canonical" href="https://insuranceclaimletterhelp.com/success.html">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="supabase-url" content="%%SUPABASE_URL%%" />
+  <meta name="supabase-anon-key" content="%%SUPABASE_ANON_KEY%%" />
+  <title>Payment confirmed</title>
+  <link rel="stylesheet" href="/styles.css" />
 </head>
+<body style="background:#0f1e35; color:#fff; font-family:'Inter',sans-serif;">
+  <div style="text-align:center; padding:60px 20px; max-width:560px; margin:0 auto;">
+    <h1>Confirming your purchase</h1>
+    <p id="msg" style="color:#cbd5e1;">Setting up your secure session…</p>
+    <div id="blocked" style="display:none; margin-top:24px; padding:20px; background:#1e293b; border-radius:12px; text-align:left;">
+      <p style="color:#fca5a5; margin:0 0 12px; font-weight:600;">We could not confirm payment yet.</p>
+      <p style="color:#94a3b8; font-size:0.95rem; margin:0 0 16px;">You can retry verification, use recovery, or return to pricing.</p>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <button type="button" id="btnRetry" style="padding:12px; border-radius:8px; border:none; background:#334155; color:#fff; font-weight:600; cursor:pointer;">Retry verification</button>
+        <a href="/recover" style="display:block; text-align:center; padding:12px; border-radius:8px; background:#475569; color:#fff; text-decoration:none; font-weight:600;">Go to recovery</a>
+        <a href="/pricing" style="display:block; text-align:center; padding:12px; border-radius:8px; background:#0f172a; color:#cbd5e1; text-decoration:none; border:1px solid #334155;">Back to pricing</a>
+      </div>
+    </div>
+    <div id="fatal" style="display:none; margin-top:24px; padding:20px; background:#450a0a; border-radius:12px; color:#fecaca;">
+      <p id="fatalText" style="margin:0;"></p>
+      <a href="/pricing" style="display:inline-block; margin-top:12px; color:#fff;">Pricing</a>
+    </div>
+  </div>
+  <script type="module">
+    const LS_KEY = 'iclh_checkout_session_id';
+    const BACKOFF_MS = [1000, 2000, 3000, 5000, 4000];
+    const MAX_WAIT_MS = 15000;
 
-<body style="background:#f8fafc; color:#0f172a; font-family:'Inter',sans-serif; margin:0; padding:0; line-height:1.5;">
-    <nav style="background:#1e293b; padding:1rem; box-shadow:0 1px 4px rgba(0,0,0,0.1); display:flex; justify-content:space-between; border-bottom:2px solid #334155; align-items:center;">
-        <div style="color:#f5f5f5;"><strong>Insurance Claim Response Pro</strong></div>
-        <div>
-            <a href="/dashboard.html" style="color:#f5f5f5; text-decoration:none; margin:0 10px; padding:8px 12px; border-radius:4px; transition:background-color 0.2s, color 0.2s;">Dashboard</a> |
-            <a href="/pricing.html" style="color:#f5f5f5; text-decoration:none; margin:0 10px; padding:8px 12px; border-radius:4px; transition:background-color 0.2s, color 0.2s;">Pricing</a> |
-            <a href="/login.html" style="color:#f5f5f5; text-decoration:none; margin:0 10px; padding:8px 12px; border-radius:4px; transition:background-color 0.2s, color 0.2s;">Login</a>
-        </div>
-    </nav>
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-    <main>
-        <div style="width:min(1120px, 92%); margin-inline:auto; padding:2rem 0;">
-            <div style="text-align:center; padding:4rem 0; background:linear-gradient(135deg, #10b981 0%, #059669 100%); color:white; margin-bottom:3rem; border-radius:12px;">
-                <span style="font-size:4rem; margin-bottom:1rem; display:block;">✅</span>
-                <h1 style="font-size:3rem; margin-bottom:1rem; font-weight:700;">Payment Successful!</h1>
-                <p style="font-size:1.3rem; opacity:0.95; max-width:600px; margin:0 auto;">Your access to the Insurance Claim Letter Response System is now unlocked.</p>
-            </div>
+    function setMsg(t) {
+      const el = document.getElementById('msg');
+      if (el) el.textContent = t;
+    }
 
-            <div style="max-width:600px; margin:0 auto; background:white; border-radius:16px; padding:2.5rem; box-shadow:0 20px 40px rgba(0,0,0,0.1); border:1px solid #e2e8f0; text-align:center;">
-                <div style="color:#2d3748; margin-bottom:2rem;">
-                    <h2 style="font-size:1.8rem; margin-bottom:1rem; color:#1e293b;">🎉 Welcome to Insurance Claim Response Pro!</h2>
-                    <p style="color:#4a5568; line-height:1.6; margin-bottom:1.5rem;">Thank you for your payment. You now have full access to our AI-powered insurance claim letter analysis system.</p>
-                </div>
+    function showBlocked() {
+      document.getElementById('blocked').style.display = 'block';
+    }
 
-                <div style="background:linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border:2px solid #10b981; border-radius:12px; padding:1.5rem; margin:2rem 0; text-align:center;">
-                    <h3 style="color:#065f46; margin-bottom:0.5rem; font-size:1.3rem;">🔓 Access Unlocked</h3>
-                    <p style="color:#047857; margin:0; font-weight:500;">You can now upload insurance claim letters and get AI-powered responses</p>
-                </div>
+    function showFatal(text) {
+      document.getElementById('fatal').style.display = 'block';
+      document.getElementById('fatalText').textContent = text;
+    }
 
-                <div style="background:#f8fafc; border-radius:12px; padding:1.5rem; margin:2rem 0; border-left:4px solid #10b981;">
-                    <h3 style="color:#1e293b; margin-bottom:1rem; font-size:1.3rem;">What's Next?</h3>
-                    <ul style="list-style:none; padding:0; text-align:left;">
-                        <li style="padding:0.5rem 0; color:#4a5568; display:flex; align-items:center;">→ Upload your insurance claim letter using our secure system</li>
-                        <li style="padding:0.5rem 0; color:#4a5568; display:flex; align-items:center;">→ Get instant AI analysis and explanation</li>
-                        <li style="padding:0.5rem 0; color:#4a5568; display:flex; align-items:center;">→ Download your professional response letter</li>
-                        <li style="padding:0.5rem 0; color:#4a5568; display:flex; align-items:center;">→ Mail your response to the insurance company</li>
-                    </ul>
-                </div>
+    async function getSupabase() {
+      const urlMeta = document.querySelector('meta[name="supabase-url"]')?.content?.trim() || '';
+      const keyMeta = document.querySelector('meta[name="supabase-anon-key"]')?.content?.trim() || '';
+      const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+      return createClient(urlMeta, keyMeta);
+    }
 
-                <div style="background:#fef3c7; border-radius:12px; padding:1.5rem; margin:2rem 0; border-left:4px solid #f59e0b;">
-                    <h3 style="color:#92400e; margin-bottom:0.5rem; font-size:1.1rem;">⚠️ Important: One Payment = One Letter</h3>
-                    <p style="color:#78350f; margin:0; font-size:0.95rem;">Your $19 payment covers the analysis and generation of <strong>one response letter</strong>. If you need additional letters, you'll need to purchase again.</p>
-                </div>
+    async function verifyPaymentLoop(supabase, sessionId) {
+      const headers = { 'Content-Type': 'application/json' };
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) {
+        console.log(JSON.stringify({ event: 'PAYMENT_INVALID', reason: 'no_bearer_for_verify', ts: new Date().toISOString() }));
+        return { done: false, fatal: 'Not authenticated. Try again from pricing.' };
+      }
+      headers['Authorization'] = 'Bearer ' + token;
 
-                <div style="display:flex; gap:1rem; justify-content:center; margin-top:2rem;">
-                    <a href="/claim-defense.html" style="background:linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color:white; padding:1rem 2rem; border:none; border-radius:12px; font-size:1.1rem; font-weight:700; cursor:pointer; transition:all 0.3s ease; box-shadow:0 6px 20px rgba(59, 130, 246, 0.3); text-decoration:none; display:inline-block;">Open Claim Analysis Wizard</a>
-                    <a href="/dashboard.html" style="background:#6c757d; color:white; padding:1rem 2rem; border:none; border-radius:12px; font-size:1.1rem; font-weight:700; cursor:pointer; transition:all 0.3s ease; text-decoration:none; display:inline-block;">Go to Dashboard</a>
-                </div>
-            </div>
-        </div>
-    </main>
+      let elapsed = 0;
+      let i = 0;
+      while (elapsed < MAX_WAIT_MS) {
+        const vr = await fetch('/.netlify/functions/verify-payment', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ sessionId }),
+        });
+        let j = {};
+        try { j = await vr.json(); } catch (_) {}
 
-    <footer style="padding:28px 0; background:#0b1220; color:#cbd5e1; text-align:center; margin-top:3rem;">
-        <div style="width:min(1120px, 92%); margin-inline:auto;">
-            <p>&copy; 2025 Insurance Claim Response Pro. <a href="/privacy.html" style="color:#93c5fd; text-decoration:none;">Privacy Policy</a> | <a href="/terms.html" style="color:#93c5fd; text-decoration:none;">Terms</a> | <a href="/disclaimer.html" style="color:#93c5fd; text-decoration:none;">Disclaimer</a></p>
-        </div>
-    </footer>
+        if (vr.status === 401) {
+          return { done: false, fatal: 'Session expired. Sign in again from pricing.' };
+        }
+        if (vr.status === 429) {
+          return { done: false, fatal: 'Too many verification attempts. Try again later.' };
+        }
+        if (vr.status === 403) {
+          return { done: false, fatal: j.message || 'Session does not belong to user.' };
+        }
 
-    <script>
-        // Payment is tracked server-side in database
-        // No localStorage needed - backend verifies payment status
-        
-        // Optional: Redirect to upload page after 5 seconds if user doesn't click
-        setTimeout(() => {
-            if (confirm('Ready to start your claim analysis? Click OK to open the wizard.')) {
-                window.location.href = '/claim-defense.html';
-            }
-        }, 5000);
-    </script>
+        const paidOk = j.status === 'paid';
+        if (paidOk) {
+          console.log(JSON.stringify({ event: 'PAYMENT_FLOW_COMPLETE', phase: 'success_page', session_id: sessionId, user_id: j.userId, source: 'client_verify', ts: new Date().toISOString() }));
+          try { localStorage.removeItem(LS_KEY); } catch (_) {}
+          return { done: true };
+        }
+
+        if (j.status === 'invalid') {
+          console.log(JSON.stringify({ event: 'PAYMENT_INVALID', reason: j.message || 'invalid', session_id: sessionId, ts: new Date().toISOString() }));
+          return { done: false, fatal: j.message || 'Verification rejected.' };
+        }
+
+        if (j.status === 'failed') {
+          console.log(JSON.stringify({ event: 'PAYMENT_FAILED', reason: j.message || 'failed', session_id: sessionId, ts: new Date().toISOString() }));
+          return { done: false, fatal: j.message || 'Payment verification failed.' };
+        }
+
+        if (j.status === 'pending' || !j.status) {
+          const wait = BACKOFF_MS[Math.min(i, BACKOFF_MS.length - 1)];
+          await sleep(wait);
+          elapsed += wait;
+          i++;
+          continue;
+        }
+
+        const wait = BACKOFF_MS[Math.min(i, BACKOFF_MS.length - 1)];
+        await sleep(wait);
+        elapsed += wait;
+        i++;
+      }
+
+      console.log(JSON.stringify({ event: 'PAYMENT_PENDING_TIMEOUT', session_id: sessionId, ts: new Date().toISOString() }));
+      return { done: false, timeout: true };
+    }
+
+    async function establishAuth(supabase, sessionId) {
+      const cs = await fetch('/.netlify/functions/create-session-from-stripe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId }),
+      });
+      const csData = await cs.json();
+      if (!cs.ok) {
+        return { ok: false, error: csData.error || 'Could not establish session.' };
+      }
+
+      if (csData.action_link && !csData.token_hash) {
+        window.location.href = csData.action_link;
+        return { ok: false, redirected: true };
+      }
+
+      if (!csData.token_hash) {
+        return { ok: false, error: 'No login token returned.' };
+      }
+
+      let { error: vErr } = await supabase.auth.verifyOtp({
+        token_hash: csData.token_hash,
+        type: 'email',
+      });
+      if (vErr) {
+        ({ error: vErr } = await supabase.auth.verifyOtp({
+          token_hash: csData.token_hash,
+          type: 'magiclink',
+        }));
+      }
+      if (vErr) {
+        return { ok: false, error: vErr.message };
+      }
+
+      return { ok: true };
+    }
+
+    async function run() {
+      const params = new URLSearchParams(window.location.search);
+      let sessionId = params.get('session_id') || localStorage.getItem(LS_KEY);
+      if (!sessionId) {
+        setMsg('Missing checkout session. Redirecting…');
+        await sleep(800);
+        window.location.href = '/pricing';
+        return;
+      }
+      try {
+        localStorage.setItem(LS_KEY, sessionId);
+      } catch (_) {}
+
+      const supabase = await getSupabase();
+
+      const { data: { session: existingAuth } } = await supabase.auth.getSession();
+
+      if (!existingAuth) {
+        setMsg('Signing you in…');
+        const authRes = await establishAuth(supabase, sessionId);
+        if (authRes.redirected) return;
+        if (!authRes.ok) {
+          showFatal(authRes.error || 'Authentication failed.');
+          return;
+        }
+      }
+
+      setMsg('Verifying payment…');
+      const result = await verifyPaymentLoop(supabase, sessionId);
+
+      if (result.done) {
+        setMsg('Redirecting to your workspace…');
+        window.location.replace('/app');
+        return;
+      }
+
+      if (result.fatal) {
+        showFatal(result.fatal);
+        return;
+      }
+
+      if (result.timeout) {
+        setMsg('');
+        showBlocked();
+        return;
+      }
+
+      setMsg('');
+      showBlocked();
+    }
+
+    document.getElementById('btnRetry')?.addEventListener('click', () => {
+      window.location.reload();
+    });
+
+    run().catch((e) => {
+      console.error(e);
+      showFatal('Something went wrong. Use recovery or pricing.');
+    });
+  </script>
 </body>
 </html>

@@ -3,49 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="supabase-url" content="%%SUPABASE_URL%%" />
+    <meta name="supabase-anon-key" content="%%SUPABASE_ANON_KEY%%" />
     <title>Your Dashboard | Insurance Claim Response Pro</title>
     <meta name="description" content="Access your Insurance Claim Response Pro dashboard to view your claim letter analyses, response letters, and account information.">
     <link rel="canonical" href="https://insuranceclaimletterhelp.com/dashboard.html">
-    <meta property="og:title" content="Your Dashboard | Insurance Claim Response Pro">
-    <meta property="og:description" content="Access your Insurance Claim Response Pro dashboard to view your claim letter analyses, response letters, and account information.">
-    <meta property="og:image" content="https://insuranceclaimletterhelp.com/images/og-image.jpg">
-    <meta property="og:url" content="https://insuranceclaimletterhelp.com/dashboard.html">
-    <meta property="og:type" content="website">
 </head>
 <body style="background:#0f172a; color:#ffffff; font-family:'Inter',sans-serif; margin:0; padding:0; line-height:1.5;">
     <nav style="background:#1e293b; padding:1rem; box-shadow:0 1px 4px rgba(0,0,0,0.1); display:flex; justify-content:space-between; border-bottom: 2px solid #334155;">
         <div style="color: #f5f5f5;"><strong>Insurance Claim Response Pro</strong></div>
         <div>
-            <a href="/dashboard.html" style="color: #f5f5f5; text-decoration: none; margin: 0 10px; padding: 8px 16px; border-radius: 4px; transition: background-color 0.2s, color 0.2s;">Dashboard</a> |
-            <a href="/pricing.html" style="color: #f5f5f5; text-decoration: none; margin: 0 10px; padding: 8px 16px; border-radius: 4px; transition: background-color 0.2s, color 0.2s;">Pricing</a> |
-            <a href="/login.html" style="color: #f5f5f5; text-decoration: none; margin: 0 10px; padding: 8px 16px; border-radius: 4px; transition: background-color 0.2s, color 0.2s;">Login</a>
+            <a href="/dashboard" style="color: #f5f5f5; text-decoration: none; margin: 0 10px; padding: 8px 16px; border-radius: 4px;">Dashboard</a> |
+            <a href="/pricing" style="color: #f5f5f5; text-decoration: none; margin: 0 10px; padding: 8px 16px; border-radius: 4px;">Pricing</a> |
+            <a href="/login.html" style="color: #f5f5f5; text-decoration: none; margin: 0 10px; padding: 8px 16px; border-radius: 4px;">Login</a>
         </div>
     </nav>
 
     <div style="width:min(1120px, 92%); margin-inline:auto; padding:2rem 0;">
+        <div style="background:linear-gradient(135deg,#1e3a5f,#0f172a); border:1px solid #334155; border-radius:14px; padding:1.5rem; margin-bottom:1.5rem;">
+            <a href="/upload" style="display:inline-block; background:#22c55e; color:#fff; padding:16px 28px; border-radius:10px; font-weight:700; text-decoration:none; font-size:1.05rem; box-shadow:0 6px 20px rgba(34,197,94,.35);">Start New Estimate Review →</a>
+            <p style="color:#94a3b8; margin:0.75rem 0 0; font-size:0.95rem;">Upload a new insurer letter and run the claim workflow.</p>
+        </div>
+
         <h1 style="color:#ffffff; font-size:2.5rem; margin-bottom:2rem;">Your Dashboard</h1>
         
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:2rem; margin:2rem 0;">
             <div style="background:#ffffff; padding:2rem; border-radius:12px; box-shadow:0 4px 6px rgba(0,0,0,0.1); color:#2d3748; border:1px solid #e2e8f0;">
-                <h3 style="color:#2d3748; font-size:1.5rem; margin-bottom:1rem;">Recent Letters</h3>
+                <h3 style="color:#2d3748; font-size:1.5rem; margin-bottom:1rem;">Plan &amp; billing</h3>
+                <div id="billingSnapshot">
+                    <p style="color:#4a5568;">Loading…</p>
+                </div>
+                <a href="/pricing" style="display:inline-block; margin-top:1rem; background:#0ea5e9; color:white; padding:12px 22px; border-radius:10px; font-weight:600; text-decoration:none;">Upgrade plan</a>
+            </div>
+
+            <div style="background:#ffffff; padding:2rem; border-radius:12px; box-shadow:0 4px 6px rgba(0,0,0,0.1); color:#2d3748; border:1px solid #e2e8f0;">
+                <h3 style="color:#2d3748; font-size:1.5rem; margin-bottom:1rem;">Recent letters</h3>
                 <div id="recentLetters">
-                    <p style="color:#4a5568;">Loading your letters...</p>
+                    <p style="color:#4a5568;">Loading your letters…</p>
                 </div>
-                <a href="/claim-defense.html" style="background:#334155; color:white; padding:14px 28px; border:none; border-radius:10px; cursor:pointer; font-family:'Inter',sans-serif; font-size:1rem; font-weight:600; transition:all 0.3s ease; text-transform:uppercase; letter-spacing:0.5px; text-decoration:none; display:inline-block; margin-top:1rem;">Upload New Letter</a>
             </div>
             
             <div style="background:#ffffff; padding:2rem; border-radius:12px; box-shadow:0 4px 6px rgba(0,0,0,0.1); color:#2d3748; border:1px solid #e2e8f0;">
-                <h3 style="color:#2d3748; font-size:1.5rem; margin-bottom:1rem;">Quick Actions</h3>
+                <h3 style="color:#2d3748; font-size:1.5rem; margin-bottom:1rem;">Quick actions</h3>
                 <div style="display:flex; flex-direction:column; gap:1rem;">
-                    <a href="/claim-defense.html" style="background:#334155; color:white; padding:14px 28px; border:none; border-radius:10px; cursor:pointer; font-family:'Inter',sans-serif; font-size:1rem; font-weight:600; transition:all 0.3s ease; text-transform:uppercase; letter-spacing:0.5px; text-decoration:none; display:inline-block; text-align:center;">Analyze New Letter</a>
-                    <a href="/pricing.html" style="background:#6c757d; color:white; padding:14px 28px; border:none; border-radius:10px; cursor:pointer; font-family:'Inter',sans-serif; font-size:1rem; font-weight:600; transition:all 0.3s ease; text-transform:uppercase; letter-spacing:0.5px; text-decoration:none; display:inline-block; text-align:center;">Upgrade Plan</a>
-                </div>
-            </div>
-            
-            <div style="background:#ffffff; padding:2rem; border-radius:12px; box-shadow:0 4px 6px rgba(0,0,0,0.1); color:#2d3748; border:1px solid #e2e8f0;">
-                <h3 style="color:#2d3748; font-size:1.5rem; margin-bottom:1rem;">Account Status</h3>
-                <div id="accountStatus">
-                    <p style="color:#4a5568;">Loading account information...</p>
+                    <a href="/upload" style="background:#334155; color:white; padding:14px 28px; border-radius:10px; font-weight:600; text-decoration:none; text-align:center;">New upload</a>
+                    <a href="/claim-defense.html" style="background:#475569; color:white; padding:14px 28px; border-radius:10px; font-weight:600; text-decoration:none; text-align:center;">Open full wizard</a>
                 </div>
             </div>
         </div>
@@ -62,57 +64,69 @@
             
             if (!currentUser) {
                 alert('Please login to access your dashboard');
-                window.location.href = '/login.html';
+                window.location.href = '/login.html?redirect=' + encodeURIComponent('/dashboard');
                 return;
             }
-            
-            // Payment verification happens server-side on API calls
-            // No client-side checks - all enforcement in backend
             
             await loadUserData();
         });
         
         async function loadUserData() {
             try {
-                // Load user documents
                 const documents = await getUserDocuments(currentUser.id);
                 displayRecentLetters(documents);
-                
-                // Update account status
-                updateAccountStatus();
-                
+                await loadBilling();
             } catch (error) {
                 console.error('Failed to load user data:', error);
                 document.getElementById('recentLetters').innerHTML = '<p>Failed to load letters</p>';
             }
+        }
+
+        async function loadBilling() {
+            const res = await fetch('/.netlify/functions/billing-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: currentUser.id })
+            });
+            const b = await res.json();
+            const used = b.usage?.used ?? 0;
+            const limit = b.usage?.limit ?? 0;
+            const limLabel = limit === -1 ? 'Unlimited' : limit;
+            const renew = b.renewal_date
+                ? new Date(b.renewal_date).toLocaleDateString()
+                : '—';
+            document.getElementById('billingSnapshot').innerHTML = `
+                <p><strong>Plan:</strong> ${escapeHtml(String(b.plan_type || '—'))}</p>
+                <p><strong>Active:</strong> ${b.active ? 'Yes' : 'No'}</p>
+                <p><strong>Paid:</strong> ${b.paid === true ? 'Yes' : 'No'}</p>
+                <p><strong>Renewal / period end:</strong> ${renew}</p>
+                <p><strong>Reviews used:</strong> ${used} of ${limLabel}</p>
+            `;
+        }
+
+        function escapeHtml(s) {
+            return s.replace(/[&<>"']/g, (c) => ({
+                '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+            }[c]));
         }
         
         function displayRecentLetters(documents) {
             const container = document.getElementById('recentLetters');
             
             if (documents.length === 0) {
-                container.innerHTML = '<p>No letters uploaded yet. <a href="/claim-defense.html">Analyze your first claim →</a></p>';
+                container.innerHTML = '<p>No letters yet. <a href="/upload">Start your first estimate review →</a></p>';
                 return;
             }
             
             const lettersHtml = documents.slice(0, 5).map(doc => `
                 <div style="border: 1px solid #e1e5e9; padding: 1rem; margin: 0.5rem 0; border-radius: 8px;">
-                    <strong>${doc.file_name}</strong>
+                    <strong>${escapeHtml(doc.file_name || '')}</strong>
                     <br>
                     <small>Uploaded: ${new Date(doc.created_at).toLocaleDateString()}</small>
                 </div>
             `).join('');
             
             container.innerHTML = lettersHtml;
-        }
-        
-        function updateAccountStatus() {
-            const statusDiv = document.getElementById('accountStatus');
-            statusDiv.innerHTML = `
-                <p><strong>Email:</strong> ${currentUser.email}</p>
-                <p><strong>Member since:</strong> ${new Date(currentUser.created_at).toLocaleDateString()}</p>
-                <p><strong>Plan:</strong> Active</p>
-            `;
         }
     </script>
 </body>

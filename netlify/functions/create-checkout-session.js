@@ -3,56 +3,77 @@ import Stripe from "stripe";
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export async function handler(event) {
+  if (event.httpMethod === "OPTIONS") {
+    return {
+      statusCode: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+      },
+      body: "",
+    };
+  }
+
   try {
-    // Debug: Check environment variables
-    console.log('SITE_URL:', process.env.SITE_URL);
-    console.log('STRIPE_SECRET_KEY:', process.env.STRIPE_SECRET_KEY ? 'Set' : 'Missing');
-    console.log('STRIPE_PRICE_RESPONSE:', process.env.STRIPE_PRICE_RESPONSE);
-    
-    const { recordId = null } = JSON.parse(event.body || "{}");
+    const body = JSON.parse(event.body || "{}");
+    const {
+      recordId = null,
+      plan = "single",
+      supabase_user_id = null,
+    } = body;
+
     const priceId = process.env.STRIPE_PRICE_RESPONSE || "price_19USD_single";
 
-    // Validate required environment variables
     if (!process.env.SITE_URL) {
-      throw new Error('SITE_URL environment variable is not set');
+      throw new Error("SITE_URL environment variable is not set");
     }
     if (!process.env.STRIPE_SECRET_KEY) {
-      throw new Error('STRIPE_SECRET_KEY environment variable is not set');
+      throw new Error("STRIPE_SECRET_KEY environment variable is not set");
     }
 
+    const base = process.env.SITE_URL.replace(/\/$/, "");
+
+    const metadata = { plan, plan_type: plan };
+    if (recordId) metadata.recordId = String(recordId);
+    if (supabase_user_id) metadata.supabase_user_id = String(supabase_user_id);
+
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      line_items: [{ 
-        price: priceId, 
-        quantity: 1 
-      }],
-      mode: 'payment',
-      success_url: `${process.env.SITE_URL}/thank-you.html?session_id={CHECKOUT_SESSION_ID}&return=/claim-defense.html`,
-      cancel_url: `${process.env.SITE_URL}/pricing.html`,
-      metadata: recordId ? { recordId } : { plan: 'single' }
+      payment_method_types: ["card"],
+      line_items: [
+        {
+          price: priceId,
+          quantity: 1,
+        },
+      ],
+      mode: "payment",
+      success_url: `${base}/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${base}/pricing`,
+      client_reference_id: supabase_user_id || undefined,
+      metadata,
     });
 
     return {
       statusCode: 200,
       headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS'
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Content-Type",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
       },
-      body: JSON.stringify({ url: session.url })
+      body: JSON.stringify({ url: session.url, id: session.id }),
     };
   } catch (error) {
     return {
       statusCode: 500,
       headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
       },
-      body: JSON.stringify({ 
-        error: 'Failed to create checkout session',
-        details: error.message 
-      })
+      body: JSON.stringify({
+        error: "Failed to create checkout session",
+        details: error.message,
+      }),
     };
   }
 }

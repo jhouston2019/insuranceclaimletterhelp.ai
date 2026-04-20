@@ -88,14 +88,12 @@
             loading.style.display = 'block';
             
             try {
-                // Call Netlify function to create checkout session
-                const returnParam = new URLSearchParams(window.location.search).get('return') || '';
                 const response = await fetch('/.netlify/functions/create-checkout-session', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ return: returnParam })
+                    body: JSON.stringify({ plan: 'single' })
                 });
                 
                 const data = await response.json();

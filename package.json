@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build && npm run copy-html",
+    "build:site": "cd site && npm install && npm run build",
+    "build:all": "npm run build && npm run build:site",
     "copy-html": "copyfiles *.html dist/ && copyfiles styles.css dist/",
     "preview": "vite preview",
     "prod:check": "node scripts/prod-check.mjs",
