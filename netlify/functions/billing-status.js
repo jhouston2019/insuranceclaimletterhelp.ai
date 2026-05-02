@@ -1,3 +1,4 @@
+const { createClient } = require("@supabase/supabase-js");
 const { getBillingSnapshot } = require("./_billing-snapshot");
 
 exports.handler = async (event) => {
@@ -5,24 +6,63 @@ exports.handler = async (event) => {
     "Content-Type": "application/json",
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    "Access-Control-Allow-Methods": "POST, OPTIONS, GET",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
   };
 
   if (event.httpMethod === "OPTIONS") {
     return { statusCode: 200, headers: cors, body: "" };
   }
 
+  if (event.httpMethod !== "POST") {
+    return {
+      statusCode: 405,
+      headers: cors,
+      body: JSON.stringify({ error: "Method not allowed" }),
+    };
+  }
+
   try {
-    let userId;
-    if (event.httpMethod === "GET") {
-      const qs = new URLSearchParams(event.queryStringParameters || {});
-      userId = qs.get("userId");
-    } else {
-      const body = JSON.parse(event.body || "{}");
-      userId = body.userId;
+    const authHeader =
+      event.headers.authorization || event.headers.Authorization || "";
+    const bearer = authHeader.replace(/^Bearer\s+/i, "").trim();
+    if (!bearer) {
+      return {
+        statusCode: 401,
+        headers: cors,
+        body: JSON.stringify({ error: "Missing authorization" }),
+      };
     }
 
-    const snap = await getBillingSnapshot(userId || null);
+    const url = process.env.SUPABASE_URL;
+    const anonKey = process.env.SUPABASE_ANON_KEY;
+    if (!url || !anonKey) {
+      return {
+        statusCode: 503,
+        headers: cors,
+        body: JSON.stringify({ error: "Auth service not configured" }),
+      };
+    }
+
+    const authClient = createClient(url, anonKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+
+    const {
+      data: { user },
+      error: authErr,
+    } = await authClient.auth.getUser(bearer);
+
+    if (authErr || !user) {
+      return {
+        statusCode: 401,
+        headers: cors,
+        body: JSON.stringify({ error: "Invalid session" }),
+      };
+    }
+
+    const userId = user.id;
+
+    const snap = await getBillingSnapshot(userId);
     return {
       statusCode: 200,
       headers: cors,

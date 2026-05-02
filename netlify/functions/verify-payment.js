@@ -70,7 +70,7 @@ exports.handler = async (event) => {
     });
   }
 
-  const { sessionId } = body;
+  const sessionId = body.sessionId || body.session_id;
   if (!sessionId) {
     console.log(
       JSON.stringify({

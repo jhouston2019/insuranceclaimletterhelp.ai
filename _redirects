@@ -1,3 +1,5 @@
+/login         /login.html          200
+
 # Pretty URLs → existing static files (200 = rewrite)
 /pricing         /pricing.html          200
 /success         /success.html          200

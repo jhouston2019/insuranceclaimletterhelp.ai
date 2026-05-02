@@ -20,9 +20,21 @@ function AppGateInner() {
 
       const recoverSession = sp.get("session_id");
       const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        const redir = encodeURIComponent(
+          window.location.pathname + window.location.search
+        );
+        window.location.href = "/login.html?redirect=" + redir;
+        return;
+      }
+
+      const {
         data: { session },
       } = await supabase.auth.getSession();
-      if (!session) {
+      const token = session?.access_token;
+      if (!token) {
         const redir = encodeURIComponent(
           window.location.pathname + window.location.search
         );
@@ -32,11 +44,11 @@ function AppGateInner() {
 
       const bill = await fetch("/.netlify/functions/billing-status", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: session.user.id,
-          email: session.user.email,
-        }),
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({}),
       });
       const b = await bill.json();
 
@@ -52,13 +64,13 @@ function AppGateInner() {
       else if (plan === "premier" || plan === "enterprise") target = "/dashboard";
 
       if (recoverSession) {
-        await fetch("/.netlify/functions/verify-payment", {
+        await fetch("/api/verify-payment", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            sessionId: recoverSession,
-            userId: session.user.id,
-          }),
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ session_id: recoverSession }),
         });
       }
 

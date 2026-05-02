@@ -49,10 +49,11 @@ function updateNavigationForGuest() {
   }
 }
 
-// Global checkout — Stripe collects email; optional logged-in supabase_user_id for linkage
+// Checkout — authenticated users only (Bearer JWT); Stripe session metadata carries user linkage
 window.startCheckout = async function (plan, evt) {
   try {
     const user = await getCurrentUser();
+    const session = await getSession();
     const button = evt && evt.target ? evt.target : null;
     const originalText = button ? button.textContent : '';
     if (button) {
@@ -60,13 +61,27 @@ window.startCheckout = async function (plan, evt) {
       button.disabled = true;
     }
 
+    if (!user || !session?.access_token) {
+      alert('Please sign in to purchase.');
+      window.location.href =
+        '/login.html?redirect=' +
+        encodeURIComponent(window.location.pathname || '/pricing.html');
+      if (button) {
+        button.textContent = originalText || 'Purchase';
+        button.disabled = false;
+      }
+      return;
+    }
+
     const response = await fetch('/.netlify/functions/create-checkout-session', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + session.access_token,
+      },
       body: JSON.stringify({
         plan: plan || 'single',
-        supabase_user_id: user?.id || null
-      })
+      }),
     });
 
     const data = await response.json();

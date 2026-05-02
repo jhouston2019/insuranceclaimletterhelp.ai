@@ -55,7 +55,7 @@
 
     <script type="module">
         import { getUserDocuments } from './src/components/UploadForm.js';
-        import { getCurrentUser } from './src/components/Auth.js';
+        import { getCurrentUser, getSession } from './src/components/Auth.js';
         
         let currentUser = null;
         
@@ -75,18 +75,22 @@
             try {
                 const documents = await getUserDocuments(currentUser.id);
                 displayRecentLetters(documents);
-                await loadBilling();
+                await loadBilling(await getSession());
             } catch (error) {
                 console.error('Failed to load user data:', error);
                 document.getElementById('recentLetters').innerHTML = '<p>Failed to load letters</p>';
             }
         }
 
-        async function loadBilling() {
+        async function loadBilling(session) {
+            const token = session?.access_token ?? '';
             const res = await fetch('/.netlify/functions/billing-status', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: currentUser.id })
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: 'Bearer ' + token } : {}),
+                },
+                body: JSON.stringify({}),
             });
             const b = await res.json();
             const used = b.usage?.used ?? 0;

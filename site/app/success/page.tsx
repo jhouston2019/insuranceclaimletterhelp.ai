@@ -56,13 +56,29 @@ function SuccessInner() {
           }
         }
 
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        const token = session?.access_token;
+        if (!token) {
+          setMsg("Session required to verify payment.");
+          return;
+        }
+
         for (let i = 0; i < 5; i++) {
-          const vr = await fetch("/.netlify/functions/verify-payment", {
+          const vr = await fetch("/api/verify-payment", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ sessionId, userId: csData.userId }),
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ session_id: sessionId }),
           });
           const vj = await vr.json();
+          if (vr.status === 401) {
+            setMsg(vj.message || "Session expired.");
+            return;
+          }
           if (vj.success && !vj.pending) break;
           await new Promise((r) => setTimeout(r, 1200));
         }

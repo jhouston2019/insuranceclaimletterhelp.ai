@@ -24,31 +24,37 @@
     const qs = new URLSearchParams(window.location.search);
     let recoverSession = qs.get('session_id') || (typeof localStorage !== 'undefined' ? localStorage.getItem(LS_SID) : null);
 
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
       const redir = encodeURIComponent(window.location.pathname + window.location.search);
       window.location.href = '/login.html?redirect=' + redir;
     } else {
-      const uid = session.user.id;
+      async function getAccessToken() {
+        const { data: { session } } = await supabase.auth.getSession();
+        return session?.access_token ?? null;
+      }
 
-      async function billing() {
+      async function billing(accessToken) {
         const res = await fetch('/.netlify/functions/billing-status', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: uid }),
+          headers: {
+            'Content-Type': 'application/json',
+            ...(accessToken ? { Authorization: 'Bearer ' + accessToken } : {}),
+          },
+          body: JSON.stringify({}),
         });
         return res.json();
       }
 
       async function callVerify(accessToken) {
         if (!recoverSession || !accessToken) return { ok: false, json: null, status: 0 };
-        const vr = await fetch('/.netlify/functions/verify-payment', {
+        const vr = await fetch('/api/verify-payment', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             Authorization: 'Bearer ' + accessToken,
           },
-          body: JSON.stringify({ sessionId: recoverSession }),
+          body: JSON.stringify({ session_id: recoverSession }),
         });
         let j = null;
         try {
@@ -71,27 +77,34 @@
       let elapsed = 0;
       let i = 0;
       while (elapsed < MAX_WAIT_MS) {
-        const { data: { session: s } } = await supabase.auth.getSession();
-        if (!s) {
+        const { data: { user: u } } = await supabase.auth.getUser();
+        if (!u) {
           const redir = encodeURIComponent(window.location.pathname + window.location.search);
           window.location.href = '/login.html?redirect=' + redir;
           return;
         }
 
-        let b = await billing();
+        const accessToken = await getAccessToken();
+        if (!accessToken) {
+          const redir = encodeURIComponent(window.location.pathname + window.location.search);
+          window.location.href = '/login.html?redirect=' + redir;
+          return;
+        }
+
+        let b = await billing(accessToken);
         if (b.paid === true) {
           gotoPlan(b);
           return;
         }
 
         if (recoverSession) {
-          const vr = await callVerify(s.access_token);
+          const vr = await callVerify(accessToken);
           if (vr.status === 401) {
             const redir = encodeURIComponent(window.location.pathname + window.location.search);
             window.location.href = '/login.html?redirect=' + redir;
             return;
           }
-          b = await billing();
+          b = await billing(accessToken);
           if (b.paid === true) {
             gotoPlan(b);
             return;

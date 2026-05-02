@@ -186,7 +186,7 @@
     </div>
 
     <div id="authBanner" class="auth-banner" style="display:none;">
-      Sign in to use the analyzer with your account, or configure Supabase meta tags / set <code>WIZARD_ALLOW_BYPASS=true</code> for local testing.
+      Sign in to use the analyzer with your account. Configure Supabase URL and anon key meta tags on this host.
       <a href="/login.html">Sign in</a>
     </div>
 
@@ -452,6 +452,8 @@ Phone: 1-800-555-0100`;
       'Washington','West Virginia','Wisconsin','Wyoming'
     ];
 
+    let wizardSupabase = null;
+
     const state = {
       step: 1,
       accessToken: null,
@@ -518,7 +520,7 @@ Phone: 1-800-555-0100`;
       const timer = setTimeout(() => ctrl.abort(), 30000);
       try {
         const headers = new Headers(options.headers || {});
-        headers.set('Authorization', 'Bearer ' + state.accessToken);
+        if (state.accessToken) headers.set('Authorization', 'Bearer ' + state.accessToken);
         if (options.body && !headers.has('Content-Type')) {
           headers.set('Content-Type', 'application/json');
         }
@@ -529,17 +531,26 @@ Phone: 1-800-555-0100`;
     }
 
     async function boot() {
-      const urlMeta = document.querySelector('meta[name="supabase-url"]')?.content?.trim() || '';
-      const keyMeta = document.querySelector('meta[name="supabase-anon-key"]')?.content?.trim() || '';
-      const can = urlMeta && keyMeta && !urlMeta.includes('%%') && !keyMeta.includes('%%');
-      if (can) {
-        const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
-        const supabase = createClient(urlMeta, keyMeta);
-        const { data: { session } } = await supabase.auth.getSession();
-        state.accessToken = session?.access_token ?? 'bypass';
-      } else {
-        state.accessToken = 'bypass';
+      const SUPABASE_URL = document.querySelector('meta[name="supabase-url"]')?.content?.trim() || '';
+      const SUPABASE_ANON_KEY = document.querySelector('meta[name="supabase-anon-key"]')?.content?.trim() || '';
+      const valid =
+        SUPABASE_URL &&
+        SUPABASE_ANON_KEY &&
+        !SUPABASE_URL.includes('%%') &&
+        !SUPABASE_ANON_KEY.includes('%%');
+      if (!valid) {
+        document.body.innerText = 'Configuration error.';
+        throw new Error('Missing Supabase config');
       }
+      const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+      wizardSupabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      const { data: { user }, error: guErr } = await wizardSupabase.auth.getUser();
+      if (guErr || !user) {
+        window.location.href = '/login';
+        return;
+      }
+      const { data: { session } } = await wizardSupabase.auth.getSession();
+      state.accessToken = session?.access_token ?? null;
       document.getElementById('authBanner').style.display = state.accessToken ? 'none' : 'block';
     }
 
@@ -1032,10 +1043,25 @@ Phone: 1-800-555-0100`;
     });
 
     document.getElementById('btnGenerate').addEventListener('click', async () => {
-      // Payment gate — check if user has paid
-      const wizardToken = sessionStorage.getItem('wizardToken');
-      const hasPaid = !!wizardToken || state.accessToken === 'bypass';
-      if (!hasPaid) {
+      const { data: { user } } = await wizardSupabase.auth.getUser();
+      if (!user) {
+        window.location.href = '/login';
+        return;
+      }
+      if (!state.accessToken) {
+        window.location.href = '/login';
+        return;
+      }
+      const billRes = await fetch('/api/billing-status', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer ' + state.accessToken,
+        },
+        body: JSON.stringify({}),
+      });
+      const bill = await billRes.json().catch(() => ({}));
+      if (!billRes.ok || bill.paid !== true) {
         window.location.href = '/pricing';
         return;
       }

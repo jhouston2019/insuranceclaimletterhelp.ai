@@ -56,6 +56,11 @@
 
     async function verifyPaymentLoop(supabase, sessionId) {
       const headers = { 'Content-Type': 'application/json' };
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (!authUser) {
+        console.log(JSON.stringify({ event: 'PAYMENT_INVALID', reason: 'no_user_for_verify', ts: new Date().toISOString() }));
+        return { done: false, fatal: 'Not authenticated. Try again from pricing.' };
+      }
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
       if (!token) {
@@ -67,10 +72,10 @@
       let elapsed = 0;
       let i = 0;
       while (elapsed < MAX_WAIT_MS) {
-        const vr = await fetch('/.netlify/functions/verify-payment', {
+        const vr = await fetch('/api/verify-payment', {
           method: 'POST',
           headers,
-          body: JSON.stringify({ sessionId }),
+          body: JSON.stringify({ session_id: sessionId }),
         });
         let j = {};
         try { j = await vr.json(); } catch (_) {}
@@ -172,9 +177,9 @@
 
       const supabase = await getSupabase();
 
-      const { data: { session: existingAuth } } = await supabase.auth.getSession();
+      const { data: { user: existingUser } } = await supabase.auth.getUser();
 
-      if (!existingAuth) {
+      if (!existingUser) {
         setMsg('Signing you in…');
         const authRes = await establishAuth(supabase, sessionId);
         if (authRes.redirected) return;

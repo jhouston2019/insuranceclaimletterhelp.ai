@@ -1,5 +1,5 @@
 /**
- * Wizard API auth: Supabase JWT or Bearer "bypass" when allowed.
+ * Wizard API auth: Supabase JWT only (validated with getUser).
  */
 
 const { createClient } = require("@supabase/supabase-js");
@@ -27,26 +27,6 @@ async function verifyWizardAuth(event) {
         statusCode: 401,
         headers: corsHeaders,
         body: JSON.stringify({ error: "Missing authorization" }),
-      },
-    };
-  }
-
-  if (token === "bypass") {
-    const allow =
-      process.env.WIZARD_ALLOW_BYPASS === "true" ||
-      process.env.WIZARD_ALLOW_BYPASS === "1" ||
-      !process.env.SUPABASE_URL;
-    if (allow) {
-      return { ok: true, user: { id: "bypass", email: "wizard@local" } };
-    }
-    return {
-      ok: false,
-      response: {
-        statusCode: 401,
-        headers: corsHeaders,
-        body: JSON.stringify({
-          error: "Bypass disabled: set WIZARD_ALLOW_BYPASS=true or sign in",
-        }),
       },
     };
   }
