@@ -2,14 +2,11 @@
  * PAYMENT ENFORCEMENT (server-side)
  *
  * Canonical: getBillingSnapshot — paid === true only from user_entitlements.
+ * BYPASS_PAYMENT_WALL removed: payment bypass is not supported.
  */
 
 const { getSupabaseAdmin } = require("./_supabase");
 const { getBillingSnapshot } = require("./_billing-snapshot");
-
-function isPaymentWallBypassed() {
-  return process.env.BYPASS_PAYMENT_WALL === "true";
-}
 
 /**
  * @param {string} userId
@@ -17,25 +14,6 @@ function isPaymentWallBypassed() {
  * @param {string|null} [documentId]
  */
 async function verifyPayment(userId, email, documentId = null) {
-  if (isPaymentWallBypassed()) {
-    if (!userId && !email) {
-      return {
-        verified: false,
-        error: "No user identifier provided",
-      };
-    }
-    console.warn(
-      "[BYPASS_PAYMENT_WALL] Payment verification skipped — for local/staging test only."
-    );
-    return {
-      verified: true,
-      documentId: documentId || null,
-      paymentRecord: null,
-      canGenerate: true,
-      bypass: true,
-    };
-  }
-
   if (!userId) {
     return {
       verified: false,
@@ -68,7 +46,7 @@ async function verifyPayment(userId, email, documentId = null) {
   return {
     verified: true,
     paymentRecord: null,
-    documentId: null,
+    documentId: documentId || null,
     canGenerate: true,
     plan_type: snap.plan_type,
   };
@@ -112,31 +90,6 @@ async function canUpload(userId, email) {
 
 async function canGenerateLetter(userId, documentId) {
   const supabase = getSupabaseAdmin();
-
-  if (isPaymentWallBypassed()) {
-    const { data, error } = await supabase
-      .from("claim_letters")
-      .select("*")
-      .eq("id", documentId)
-      .eq("user_id", userId)
-      .single();
-
-    if (error || !data) {
-      return {
-        allowed: false,
-        reason: "Document not found or access denied",
-      };
-    }
-
-    console.warn(
-      "[BYPASS_PAYMENT_WALL] Generation allowed without paid status — test only."
-    );
-    return {
-      allowed: true,
-      document: data,
-      bypass: true,
-    };
-  }
 
   const pv = await verifyPayment(userId, null);
   if (!pv.verified) {
@@ -239,5 +192,4 @@ module.exports = {
   canUpload,
   canGenerateLetter,
   withPaymentEnforcement,
-  isPaymentWallBypassed,
 };

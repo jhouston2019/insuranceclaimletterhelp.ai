@@ -22,6 +22,8 @@ exports.handler = async (event) => {
       return { statusCode: 400, body: `Webhook Error: ${err.message}` };
     }
 
+    // Canonical unlock: Stripe-signed webhook ONLY sets paid/active entitlements (+ processed_sessions).
+    // verify-payment validates session vs JWT and polls until this row appears (no entitlement writes).
     if (evt.type === "checkout.session.completed") {
       const session = evt.data.object;
       const recordId = session.metadata?.recordId || null;
@@ -29,7 +31,10 @@ exports.handler = async (event) => {
         typeof session.customer === "string"
           ? session.customer
           : session.customer?.id || null;
-      const metaUid = session.metadata?.supabase_user_id || null;
+      const metaUid =
+        session.metadata?.supabase_user_id ||
+        session.metadata?.user_id ||
+        null;
       const plan =
         session.metadata?.plan_type ||
         session.metadata?.plan ||

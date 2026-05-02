@@ -57,6 +57,14 @@ function SuccessInner() {
         }
 
         const {
+          data: { user: sessionUser },
+        } = await supabase.auth.getUser();
+        if (!sessionUser) {
+          setMsg("Session required to verify payment.");
+          return;
+        }
+
+        const {
           data: { session },
         } = await supabase.auth.getSession();
         const token = session?.access_token;
@@ -65,7 +73,8 @@ function SuccessInner() {
           return;
         }
 
-        for (let i = 0; i < 5; i++) {
+        let unlocked = false;
+        for (let i = 0; i < 24; i++) {
           const vr = await fetch("/api/verify-payment", {
             method: "POST",
             headers: {
@@ -79,8 +88,14 @@ function SuccessInner() {
             setMsg(vj.message || "Session expired.");
             return;
           }
-          if (vj.success && !vj.pending) break;
+          if (vj.success && !vj.pending) {
+            unlocked = true;
+            break;
+          }
           await new Promise((r) => setTimeout(r, 1200));
+        }
+        if (!unlocked) {
+          setMsg("Still finalizing unlock — continuing to your account.");
         }
 
         setMsg("Redirecting…");

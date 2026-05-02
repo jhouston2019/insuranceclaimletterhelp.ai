@@ -1,6 +1,6 @@
 /**
- * SOURCE OF TRUTH: payment is confirmed only when Stripe session.payment_status === "paid"
- * AND user is resolved + ownership validated (JWT user === resolved user, stripe_customer_id consistent).
+ * Client validation: confirms Stripe session is paid and belongs to the JWT user.
+ * Unlock (user_entitlements.paid, processed_sessions) is written ONLY by stripe-webhook.js.
  */
 
 const Stripe = require("stripe");
@@ -440,49 +440,44 @@ exports.handler = async (event) => {
     });
   }
 
-  await supabase.from("user_entitlements").upsert(
-    {
-      user_id: authUid,
-      stripe_customer_id: stripeCustomerId,
-      plan_type: planType,
-      paid: true,
-      active: true,
-      last_checkout_session_id: sessionId,
-      current_period_end: null,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "user_id" }
-  );
+  const { data: unlockRow } = await supabase
+    .from("user_entitlements")
+    .select("paid, active")
+    .eq("user_id", authUid)
+    .maybeSingle();
 
-  await supabase.from("processed_sessions").upsert(
-    {
-      stripe_checkout_session_id: sessionId,
-      status: "completed",
-      user_id: authUid,
-      completed_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "stripe_checkout_session_id" }
-  );
+  const dbPaid =
+    unlockRow?.paid === true && unlockRow?.active !== false;
+
+  if (!dbPaid) {
+    console.log(
+      JSON.stringify({
+        event: "verify_payment_pending_unlock",
+        reason: "webhook_not_applied_yet",
+        session_id: sessionId,
+        user_id: authUid,
+        resolveSource,
+        ts: new Date().toISOString(),
+      })
+    );
+    return json(cors, 200, {
+      status: "pending",
+      pending: true,
+      sessionId: session.id,
+      userId: authUid,
+      plan_type: planType,
+      message: "Stripe payment confirmed; waiting for account unlock.",
+      success: false,
+    });
+  }
 
   console.log(
     JSON.stringify({
-      event: "verify_payment_completed",
-      source: "verify_payment",
+      event: "verify_payment_unlocked",
+      source: "read_only",
       session_id: sessionId,
       user_id: authUid,
       resolveSource,
-      ts: new Date().toISOString(),
-    })
-  );
-
-  console.log(
-    JSON.stringify({
-      event: "PAYMENT_FLOW_COMPLETE",
-      session_id: sessionId,
-      user_id: authUid,
-      source: "verify_payment",
-      status: "paid",
       ts: new Date().toISOString(),
     })
   );
@@ -493,5 +488,6 @@ exports.handler = async (event) => {
     userId: authUid,
     plan_type: planType,
     success: true,
+    pending: false,
   });
 };

@@ -7,7 +7,8 @@ const {
   corsHeaders,
   optionsResponse,
   verifyWizardAuth,
-} = require("./_wizardAuth.js");
+} = require("./_wizardAuth");
+const { getSupabaseAdmin } = require("./_supabase");
 
 const LETTER_SYSTEM_PROMPT = `You are an expert insurance claim dispute specialist with
 20 years of experience in policyholder advocacy, bad faith
@@ -203,6 +204,25 @@ exports.handler = async (event) => {
 
   const auth = await verifyWizardAuth(event);
   if (!auth.ok) return auth.response;
+
+  const admin = getSupabaseAdmin();
+  const { data: entitlement } = await admin
+    .from("user_entitlements")
+    .select("paid, active")
+    .eq("user_id", auth.user.id)
+    .maybeSingle();
+
+  if (
+    !entitlement ||
+    entitlement.paid !== true ||
+    entitlement.active === false
+  ) {
+    return {
+      statusCode: 402,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: "Payment required" }),
+    };
+  }
 
   try {
     const body = JSON.parse(event.body || "{}");
