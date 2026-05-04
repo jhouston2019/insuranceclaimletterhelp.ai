@@ -8,6 +8,7 @@ const {
   optionsResponse,
   verifyWizardAuth,
 } = require("./_wizardAuth.js");
+const { recordReviewUsageIncrement } = require("./_billing-snapshot");
 
 const ANALYSIS_SYSTEM_PROMPT = `You are an expert insurance claim dispute analyst with
 20 years of experience in property and casualty insurance,
@@ -404,6 +405,15 @@ exports.handler = async (event) => {
         usage: usageLog,
       })
     );
+
+    const userId = auth.user?.id;
+    if (userId && typeof userId === "string") {
+      try {
+        await recordReviewUsageIncrement(userId);
+      } catch (usageErr) {
+        console.warn("recordReviewUsageIncrement:", usageErr);
+      }
+    }
 
     return {
       statusCode: 200,
