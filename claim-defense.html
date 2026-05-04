@@ -530,28 +530,47 @@ Phone: 1-800-555-0100`;
       }
     }
 
+    const PLACEHOLDER_PATTERNS = ['your-url-here', 'placeholder', 'undefined', 'null'];
+
+    function isPlaceholder(val) {
+      if (val == null || String(val).trim() === '') return true;
+      const s = String(val).toLowerCase();
+      if (s.includes('%%')) return true;
+      return PLACEHOLDER_PATTERNS.some((p) => s.includes(p));
+    }
+
     async function boot() {
       const SUPABASE_URL = document.querySelector('meta[name="supabase-url"]')?.content?.trim() || '';
       const SUPABASE_ANON_KEY = document.querySelector('meta[name="supabase-anon-key"]')?.content?.trim() || '';
-      const valid =
-        SUPABASE_URL &&
-        SUPABASE_ANON_KEY &&
-        !SUPABASE_URL.includes('%%') &&
-        !SUPABASE_ANON_KEY.includes('%%');
-      if (!valid) {
-        document.body.innerText = 'Configuration error.';
-        throw new Error('Missing Supabase config');
+
+      if (isPlaceholder(SUPABASE_URL) || isPlaceholder(SUPABASE_ANON_KEY)) {
+        document.body.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif;padding:2rem;background:#0f1e35;">
+      <div style="max-width:480px;text-align:center;color:#e2e8f0;">
+        <h2 style="color:#fca5a5;margin-bottom:1rem;">Configuration Error</h2>
+        <p style="color:#cbd5e1;line-height:1.6;">This application is not configured correctly. If you are a user, please contact support. If you are a developer, check that SUPABASE_URL and SUPABASE_ANON_KEY are set in your environment.</p>
+      </div>
+    </div>`;
+        throw new Error('FATAL: Supabase config missing or placeholder. Wizard halted.');
       }
+
       const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
       wizardSupabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
       const { data: { user }, error: guErr } = await wizardSupabase.auth.getUser();
       if (guErr || !user) {
         window.location.href = '/login';
         return;
       }
-      const { data: { session } } = await wizardSupabase.auth.getSession();
-      state.accessToken = session?.access_token ?? null;
-      document.getElementById('authBanner').style.display = state.accessToken ? 'none' : 'block';
+
+      const { data: { session }, error: sessErr } = await wizardSupabase.auth.getSession();
+      if (sessErr || !session?.access_token) {
+        window.location.href = '/login';
+        return;
+      }
+
+      state.accessToken = session.access_token;
+      document.getElementById('authBanner').style.display = 'none';
     }
 
     function syncAnalyzeBtn() {

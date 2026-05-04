@@ -20,6 +20,17 @@ async function verifyWizardAuth(event) {
     event.headers.authorization || event.headers.Authorization || "";
   const token = authHeader.replace(/^Bearer\s+/i, "").trim();
 
+  if (token.toLowerCase() === "bypass") {
+    return {
+      ok: false,
+      response: {
+        statusCode: 401,
+        headers: corsHeaders,
+        body: JSON.stringify({ error: "Invalid token" }),
+      },
+    };
+  }
+
   if (!token) {
     return {
       ok: false,

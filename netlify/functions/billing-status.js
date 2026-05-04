@@ -25,6 +25,13 @@ exports.handler = async (event) => {
     const authHeader =
       event.headers.authorization || event.headers.Authorization || "";
     const bearer = authHeader.replace(/^Bearer\s+/i, "").trim();
+    if (bearer.toLowerCase() === "bypass") {
+      return {
+        statusCode: 401,
+        headers: cors,
+        body: JSON.stringify({ error: "Invalid token" }),
+      };
+    }
     if (!bearer) {
       return {
         statusCode: 401,
@@ -59,6 +66,11 @@ exports.handler = async (event) => {
         body: JSON.stringify({ error: "Invalid session" }),
       };
     }
+
+    // Never trust JSON body userId (IDOR). Billing is always for the JWT subject.
+    try {
+      JSON.parse(event.body || "{}");
+    } catch (_) {}
 
     const userId = user.id;
 

@@ -21,8 +21,9 @@ function AppGateInner() {
       const recoverSession = sp.get("session_id");
       const {
         data: { user },
+        error: userErr,
       } = await supabase.auth.getUser();
-      if (!user) {
+      if (userErr || !user) {
         const redir = encodeURIComponent(
           window.location.pathname + window.location.search
         );
@@ -32,9 +33,10 @@ function AppGateInner() {
 
       const {
         data: { session },
+        error: sessionErr,
       } = await supabase.auth.getSession();
       const token = session?.access_token;
-      if (!token) {
+      if (sessionErr || !token) {
         const redir = encodeURIComponent(
           window.location.pathname + window.location.search
         );

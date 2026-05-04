@@ -88,6 +88,12 @@ exports.handler = async (event) => {
   }
 
   const bearer = authHeader.replace(/^Bearer\s+/i, "").trim();
+  if (bearer.toLowerCase() === "bypass") {
+    return json(cors, 401, {
+      status: "invalid",
+      message: "Invalid token",
+    });
+  }
   if (!bearer) {
     console.log(
       JSON.stringify({

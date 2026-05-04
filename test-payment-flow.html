@@ -56,7 +56,7 @@
 
     <div class="test-section">
         <h2>2. Test Access Control</h2>
-        <button class="test-button" onclick="testUploadAccess()">Test Wizard Letter Gate (token)</button>
+        <button class="test-button" onclick="testUploadAccess()">Test Wizard Letter Gate (billing)</button>
         <button class="test-button" onclick="testDashboardAccess()">Test Dashboard Access</button>
         <div id="accessResults"></div>
     </div>
@@ -80,8 +80,8 @@
         <h2>📋 Test Checklist</h2>
         <ul>
             <li>✅ Payment page created with Stripe integration</li>
-            <li>✅ Thank-you page verifies Stripe session and sets wizardToken</li>
-            <li>✅ Wizard letter step requires session wizardToken (or bypass)</li>
+            <li>✅ Thank-you page verifies Stripe session with Supabase JWT + <code>verify-payment</code></li>
+            <li>✅ Wizard “Generate” calls <code>billing-status</code> with Bearer token (no sessionStorage gate)</li>
             <li>✅ Dashboard page checks payment status</li>
             <li>✅ Homepage CTA buttons redirect to payment</li>
             <li>✅ Navigation links redirect to payment</li>
@@ -93,35 +93,29 @@
         function checkPaymentStatus() {
             const legacyPaid = localStorage.getItem('paid') === 'true';
             const wizardPaid = localStorage.getItem('wizardPaid') === 'true';
-            const wizardToken = !!sessionStorage.getItem('wizardToken');
             const statusDiv = document.getElementById('paymentStatus');
-            statusDiv.innerHTML = `<div class="status ${wizardToken ? 'success' : 'error'}">
-                Legacy paid flag: ${legacyPaid ? 'yes' : 'no'} · wizardPaid: ${wizardPaid ? 'yes' : 'no'} · wizardToken (session): ${wizardToken ? '✅ SET' : '❌ MISSING'}
+            statusDiv.innerHTML = `<div class="status info">
+                Legacy test flags: paid=${legacyPaid ? 'yes' : 'no'}, wizardPaid=${wizardPaid ? 'yes' : 'no'}.
+                Real entitlements live in Supabase (<code>user_entitlements</code>); wizard uses <code>/api/billing-status</code> with your JWT.
             </div>`;
         }
 
         function clearPaymentStatus() {
             localStorage.removeItem('paid');
             localStorage.removeItem('wizardPaid');
-            sessionStorage.removeItem('wizardToken');
             checkPaymentStatus();
-            document.getElementById('accessResults').innerHTML = '<div class="status info">Wizard payment flags cleared. Generate on the wizard should send you to payment.</div>';
+            document.getElementById('accessResults').innerHTML = '<div class="status info">Local test flags cleared. Paid access is determined server-side after Stripe checkout.</div>';
         }
 
         function setPaymentStatus() {
             localStorage.setItem('paid', 'true');
             localStorage.setItem('wizardPaid', 'true');
-            sessionStorage.setItem('wizardToken', btoa('test:0:paid'));
             checkPaymentStatus();
-            document.getElementById('accessResults').innerHTML = '<div class="status success">Simulated post-checkout flags set (including wizardToken).</div>';
+            document.getElementById('accessResults').innerHTML = '<div class="status success">Simulated local flags set (for this test page only). Production uses Supabase + Stripe webhook.</div>';
         }
 
         function testUploadAccess() {
-            const hasToken = !!sessionStorage.getItem('wizardToken');
-            const result = hasToken ?
-                '✅ Wizard “Generate letter” gate should allow (token present)' :
-                '❌ Wizard should redirect to payment when generating letter';
-            document.getElementById('accessResults').innerHTML = `<div class="status ${hasToken ? 'success' : 'error'}">${result}</div>`;
+            document.getElementById('accessResults').innerHTML = `<div class="status info">Open Claim Defense while logged in. “Generate letter” calls <code>billing-status</code>; <code>paid !== true</code> redirects to pricing. No sessionStorage token is used.</div>`;
         }
 
         function testDashboardAccess() {

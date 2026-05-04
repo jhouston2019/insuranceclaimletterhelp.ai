@@ -5,10 +5,12 @@ import { useSearchParams } from "next/navigation";
 
 /**
  * Mirrors static /success.html — calls Netlify functions on the same origin in production.
+ * verify-payment requires Authorization: Bearer <access_token> on every request.
  */
 function SuccessInner() {
   const sp = useSearchParams();
   const [msg, setMsg] = useState("Confirming purchase…");
+  const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
     const sessionId = sp.get("session_id");
@@ -32,7 +34,7 @@ function SuccessInner() {
         });
         const csData = await cs.json();
         if (!cs.ok) {
-          setMsg(csData.error || "Session error");
+          setErr(csData.error || "Session error");
           return;
         }
         if (csData.action_link && !csData.token_hash) {
@@ -51,30 +53,40 @@ function SuccessInner() {
             }));
           }
           if (vErr) {
-            setMsg(vErr.message);
+            setErr(vErr.message);
             return;
           }
         }
 
         const {
-          data: { user: sessionUser },
+          data: { user },
+          error: userErr,
         } = await supabase.auth.getUser();
-        if (!sessionUser) {
-          setMsg("Session required to verify payment.");
+        if (userErr || !user) {
+          setErr("Authentication failed. Please return to pricing and try again.");
           return;
         }
 
         const {
-          data: { session },
+          data: { session: sessionAfter },
+          error: sessionErr,
         } = await supabase.auth.getSession();
-        const token = session?.access_token;
-        if (!token) {
-          setMsg("Session required to verify payment.");
+        if (sessionErr || !sessionAfter?.access_token) {
+          setErr("Authentication failed. Please return to pricing and try again.");
           return;
         }
 
         let unlocked = false;
         for (let i = 0; i < 24; i++) {
+          const {
+            data: { session: pollSession },
+          } = await supabase.auth.getSession();
+          const token = pollSession?.access_token;
+          if (!token) {
+            setErr("Session expired. Please sign in again.");
+            return;
+          }
+
           const vr = await fetch("/api/verify-payment", {
             method: "POST",
             headers: {
@@ -85,12 +97,17 @@ function SuccessInner() {
           });
           const vj = await vr.json();
           if (vr.status === 401) {
-            setMsg(vj.message || "Session expired.");
+            setErr(vj.message || "Not authorized to verify payment.");
             return;
           }
-          if (vj.success && !vj.pending) {
+          const done = vj.success === true && vj.pending !== true;
+          if (done) {
             unlocked = true;
             break;
+          }
+          if (vj.status === "invalid" || vj.status === "failed") {
+            setErr(vj.message || "Payment verification failed.");
+            return;
           }
           await new Promise((r) => setTimeout(r, 1200));
         }
@@ -101,7 +118,7 @@ function SuccessInner() {
         setMsg("Redirecting…");
         window.location.href = "/app";
       } catch (e: unknown) {
-        setMsg(e instanceof Error ? e.message : "Error");
+        setErr(e instanceof Error ? e.message : "Error");
       }
     })();
   }, [sp]);
@@ -121,7 +138,11 @@ function SuccessInner() {
     >
       <div>
         <h1>Payment</h1>
-        <p style={{ color: "#cbd5e1" }}>{msg}</p>
+        {err ? (
+          <p style={{ color: "#fca5a5", maxWidth: 480, margin: "0 auto" }}>{err}</p>
+        ) : (
+          <p style={{ color: "#cbd5e1" }}>{msg}</p>
+        )}
       </div>
     </div>
   );
