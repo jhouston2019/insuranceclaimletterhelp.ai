@@ -3,17 +3,18 @@ import { getCurrentUser, getSession } from './components/Auth.js';
 
 // Initialize the app
 document.addEventListener('DOMContentLoaded', async () => {
-  // Check if user is logged in
   const user = await getCurrentUser();
-  const session = await getSession();
-  
-  if (user && session) {
-    // User is logged in, show dashboard link
-    updateNavigationForLoggedInUser(user);
-  } else {
-    // User is not logged in, show login/signup
+  if (!user) {
     updateNavigationForGuest();
+    return;
   }
+  const session = await getSession();
+  const token = session?.access_token ?? null;
+  if (!token) {
+    updateNavigationForGuest();
+    return;
+  }
+  updateNavigationForLoggedInUser(user);
 });
 
 function updateNavigationForLoggedInUser(user) {

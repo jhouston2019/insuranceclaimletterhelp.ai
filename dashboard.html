@@ -75,7 +75,14 @@
             try {
                 const documents = await getUserDocuments(currentUser.id);
                 displayRecentLetters(documents);
-                await loadBilling(await getSession());
+                const session = await getSession();
+                const token = session?.access_token ?? null;
+                if (!token) {
+                    alert('Session expired. Please log in again.');
+                    window.location.href = '/login.html?redirect=' + encodeURIComponent('/dashboard');
+                    return;
+                }
+                await loadBilling(session);
             } catch (error) {
                 console.error('Failed to load user data:', error);
                 document.getElementById('recentLetters').innerHTML = '<p>Failed to load letters</p>';
