@@ -1,6 +1,6 @@
 [build]
-  command = ""
-  publish = "."
+  command = "node build-inject.js"
+  publish = "dist"
 
 [build.environment]
   NODE_VERSION = "18"
