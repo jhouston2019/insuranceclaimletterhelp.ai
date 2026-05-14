@@ -164,6 +164,66 @@
       #letterBody { padding: 14px 11px; min-height: 260px; }
       .btn-row .btn { margin-right: 0; }
     }
+
+    /* Preview blur and unlock overlay */
+    .preview-section {
+      position: relative;
+    }
+    .preview-blur-overlay {
+      position: absolute;
+      inset: 0;
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      background: rgba(255,255,255,0.15);
+      border-radius: 10px;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 24px;
+      text-align: center;
+    }
+    .unlock-box {
+      background: #fff;
+      border: 2px solid #0f1e35;
+      border-radius: 12px;
+      padding: 28px 32px;
+      max-width: 420px;
+      width: 100%;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+    }
+    .unlock-box h3 {
+      font-family: Georgia, serif;
+      margin: 0 0 8px;
+      font-size: 1.2rem;
+      color: #0f1e35;
+    }
+    .unlock-box p {
+      color: #6b7280;
+      font-size: 0.9rem;
+      margin: 0 0 20px;
+    }
+    .btn-unlock {
+      background: #0f1e35;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 14px 28px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      width: 100%;
+    }
+    .btn-unlock:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .unlock-price {
+      font-size: 0.85rem;
+      color: #6b7280;
+      margin-top: 10px;
+    }
   </style>
 </head>
 <body>
@@ -279,6 +339,7 @@
           <div id="criticalExtra" class="critical-msg" style="display:none;">Download letter and consult a professional</div>
         </div>
       </div>
+      <div class="preview-section">
       <div class="step2-body">
         <div class="metrics" id="metricsRow"></div>
         <h3 class="section-title">What the insurer is claiming</h3>
@@ -314,16 +375,35 @@
         </div>
         <div id="step2Error" class="error-inline"></div>
       </div>
+      <div class="preview-blur-overlay" id="step2BlurOverlay" style="display:none;">
+      <div class="unlock-box">
+        <h3>Unlock Your Full Analysis</h3>
+        <p>Your claim has been analyzed. Unlock the full breakdown, dispute strategies, and a professionally written response letter.</p>
+        <button class="btn-unlock" id="btnUnlock">Unlock Full Report — $29</button>
+        <div class="unlock-price">One-time payment · PDF + Word download included</div>
+      </div>
+    </div>
+      </div>
     </div>
 
     <!-- Step 3 -->
     <div class="step card" id="step3">
       <h2 class="serif">Response strategy</h2>
       <p class="muted">Select one approach. The recommended option reflects your claim analysis.</p>
+      <div class="preview-section">
       <div class="strategy-grid" id="strategyGrid"></div>
       <div id="customWrap" style="display:none;margin-top:16px;">
         <label for="customStrategyText">Describe your approach</label>
         <textarea id="customStrategyText" rows="5" placeholder="e.g. The insurer applied the wear and tear exclusion without providing any engineering report or moisture testing..."></textarea>
+      </div>
+      <div class="preview-blur-overlay" id="step3BlurOverlay" style="display:none;">
+      <div class="unlock-box">
+        <h3>Unlock Your Response Strategy</h3>
+        <p>See all recommended dispute strategies and generate your professional response letter.</p>
+        <button class="btn-unlock" id="btnUnlock3">Unlock Full Report — $29</button>
+        <div class="unlock-price">One-time payment · PDF + Word download included</div>
+      </div>
+    </div>
       </div>
       <div class="btn-row" style="margin-top:20px;">
         <button type="button" class="btn btn-secondary" id="btnBack3">← Back</button>
@@ -458,6 +538,8 @@ Phone: 1-800-555-0100`;
       step: 1,
       accessToken: null,
       previewMode: true,
+      stripeSessionId: null,
+      jobPaid: false,
       fileBase64: null,
       fileType: null,
       analysis: null,
@@ -507,6 +589,7 @@ Phone: 1-800-555-0100`;
         noteEl.style.display = 'block';
       }
       updateProgressNav();
+      if ([2, 3, 4].includes(n)) applyPreviewMode();
     }
 
     function showLoading(id, on, text) {
@@ -540,6 +623,172 @@ Phone: 1-800-555-0100`;
       return PLACEHOLDER_PATTERNS.some((p) => s.includes(p));
     }
 
+    function captureWizardState() {
+      return {
+        claimText: document.getElementById('claimText').value,
+        claimType: document.getElementById('claimType').value,
+        claimState: document.getElementById('claimState').value,
+        policyNumber: document.getElementById('policyNumber').value,
+        claimNumber: document.getElementById('claimNumber').value,
+        dateOfLoss: document.getElementById('dateOfLoss').value,
+        adjusterName: document.getElementById('adjusterName').value,
+        disputedAmount: document.getElementById('disputedAmount').value,
+        responseDeadline: document.getElementById('responseDeadline').value,
+        analysis: state.analysis,
+        strategy: state.strategy,
+        letterRaw: state.letterRaw,
+        step: state.step,
+        fillName: document.getElementById('fillName').value,
+        fillAddress: document.getElementById('fillAddress').value,
+        fillCity: document.getElementById('fillCity').value,
+        fillPhone: document.getElementById('fillPhone').value,
+        fillEmail: document.getElementById('fillEmail').value,
+        fillClaimNumber: document.getElementById('fillClaimNumber').value,
+        fillPolicyNumber: document.getElementById('fillPolicyNumber').value,
+        fillDateOfLoss: document.getElementById('fillDateOfLoss').value,
+        fillDisputedAmount: document.getElementById('fillDisputedAmount').value,
+        fillInsurerAddress: document.getElementById('fillInsurerAddress').value,
+        fillAdjusterName: document.getElementById('fillAdjusterName').value,
+      };
+    }
+
+    async function restoreWizardState(sessionId) {
+      try {
+        const res = await fetch('/.netlify/functions/verify-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_id: sessionId }),
+        });
+        if (!res.ok) return false;
+        const data = await res.json();
+        if (!data.paid) return false;
+
+        const ws = data.wizardState;
+        if (!ws) return false;
+
+        const fields = [
+          'claimText','claimType','claimState','policyNumber','claimNumber',
+          'dateOfLoss','adjusterName','disputedAmount','responseDeadline',
+          'fillName','fillAddress','fillCity','fillPhone','fillEmail',
+          'fillClaimNumber','fillPolicyNumber','fillDateOfLoss',
+          'fillDisputedAmount','fillInsurerAddress','fillAdjusterName'
+        ];
+        fields.forEach(id => {
+          const el = document.getElementById(id);
+          if (el && ws[id] != null) el.value = ws[id];
+        });
+
+        if (ws.analysis) state.analysis = ws.analysis;
+        if (ws.strategy !== undefined && ws.strategy !== null) state.strategy = ws.strategy;
+        if (ws.letterRaw !== undefined && ws.letterRaw !== null) state.letterRaw = ws.letterRaw;
+
+        state.previewMode = false;
+        state.jobPaid = true;
+        state.stripeSessionId = sessionId;
+
+        try { sessionStorage.setItem('stripeSessionId', sessionId); } catch (_) {}
+
+        const url = new URL(window.location.href);
+        url.searchParams.delete('session_id');
+        history.replaceState({}, '', url.toString());
+
+        if (state.analysis) renderStep2();
+
+        let targetStep = typeof ws.step === 'number' && ws.step >= 1 && ws.step <= 4
+          ? ws.step
+          : (state.analysis ? 2 : 1);
+
+        if (state.analysis && targetStep >= 3) {
+          renderStrategyCards();
+          const sel = ws.strategy ? String(ws.strategy) : '';
+          if (sel) {
+            const card = Array.from(document.querySelectorAll('#strategyGrid .strat-card'))
+              .find(c => (c.dataset.id || '') === sel);
+            if (card) card.click();
+          }
+        }
+
+        if (state.letterRaw && String(state.letterRaw).trim()) {
+          state.editing = false;
+          const lb = document.getElementById('letterBody');
+          lb.contentEditable = 'false';
+          lb.innerHTML = highlightPlaceholders(state.letterRaw);
+          const a = state.analysis || {};
+          document.getElementById('letterTitleBar').textContent =
+            'Your Insurance Dispute Letter — ' + (a.claimType || '') + ' | ' + (a.insurerName || '') + ' | ' + (state.strategy || '');
+          prefillFillFields();
+          document.getElementById('fillDate').value = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        }
+
+        setStep(targetStep);
+        applyPreviewMode();
+        syncAnalyzeBtn();
+        updateProgressNav();
+        return true;
+      } catch (e) {
+        console.error('restoreWizardState error:', e);
+        return false;
+      }
+    }
+
+    function applyPreviewMode() {
+      const isPreview = state.previewMode;
+
+      const step2Overlay = document.getElementById('step2BlurOverlay');
+      if (step2Overlay) step2Overlay.style.display = isPreview ? 'flex' : 'none';
+
+      const step3Overlay = document.getElementById('step3BlurOverlay');
+      if (step3Overlay) step3Overlay.style.display = isPreview ? 'flex' : 'none';
+
+      const btnPdf = document.getElementById('btnPdf');
+      const btnDocx = document.getElementById('btnDocx');
+      if (btnPdf) {
+        btnPdf.disabled = isPreview;
+        btnPdf.title = isPreview ? 'Payment required' : '';
+      }
+      if (btnDocx) {
+        btnDocx.disabled = isPreview;
+        btnDocx.title = isPreview ? 'Payment required' : '';
+      }
+    }
+
+    async function handleUnlock() {
+      const b1 = document.getElementById('btnUnlock');
+      const b2 = document.getElementById('btnUnlock3');
+      const btns = [b1, b2].filter(Boolean);
+      btns.forEach(b => {
+        if (b) { b.disabled = true; b.textContent = 'Redirecting to payment…'; }
+      });
+
+      try {
+        const wizardState = captureWizardState();
+        const headers = { 'Content-Type': 'application/json' };
+        if (state.accessToken) headers['Authorization'] = 'Bearer ' + state.accessToken;
+
+        const res = await fetch('/.netlify/functions/create-checkout-session', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            plan: 'single',
+            wizardState,
+          }),
+        });
+        const data = await res.json();
+        if (data.url) {
+          window.location.href = data.url;
+        } else {
+          btns.forEach(b => { if (b) { b.disabled = false; b.textContent = 'Unlock Full Report — $29'; } });
+          alert('Could not start checkout: ' + (data.error || 'Unknown error'));
+        }
+      } catch (e) {
+        btns.forEach(b => { if (b) { b.disabled = false; b.textContent = 'Unlock Full Report — $29'; } });
+        alert('Network error. Please try again.');
+      }
+    }
+
+    document.getElementById('btnUnlock')?.addEventListener('click', handleUnlock);
+    document.getElementById('btnUnlock3')?.addEventListener('click', handleUnlock);
+
     async function boot() {
       const SUPABASE_URL = document.querySelector('meta[name="supabase-url"]')?.content?.trim() || '';
       const SUPABASE_ANON_KEY = document.querySelector('meta[name="supabase-anon-key"]')?.content?.trim() || '';
@@ -558,30 +807,51 @@ Phone: 1-800-555-0100`;
       const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
       wizardSupabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-      // Try to get existing session — guests proceed without one
+      let storedSid = null;
+      try { storedSid = sessionStorage.getItem('stripeSessionId'); } catch (_) {}
+      if (storedSid) state.stripeSessionId = storedSid;
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const sessionIdUrl = urlParams.get('session_id');
+      if (sessionIdUrl) {
+        const ok = await restoreWizardState(sessionIdUrl);
+        if (ok) {
+          document.getElementById('authBanner').style.display = 'none';
+          applyPreviewMode();
+          return;
+        }
+        try {
+          const u = new URL(window.location.href);
+          u.searchParams.delete('session_id');
+          history.replaceState({}, '', u.toString());
+        } catch (_) {}
+      }
+
+      if (storedSid) {
+        await restoreWizardState(storedSid);
+      }
+
       const { data: { user } } = await wizardSupabase.auth.getUser();
 
       if (!user) {
-        // Guest path — allow through, preview mode on
         state.accessToken = null;
-        state.previewMode = true;
+        if (!state.jobPaid) state.previewMode = true;
         document.getElementById('authBanner').style.display = 'none';
+        applyPreviewMode();
         return;
       }
 
-      // Signed-in user — get token
       const { data: { session }, error: sessErr } = await wizardSupabase.auth.getSession();
       if (sessErr || !session?.access_token) {
-        // Session invalid — treat as guest
         state.accessToken = null;
-        state.previewMode = true;
+        if (!state.jobPaid) state.previewMode = true;
         document.getElementById('authBanner').style.display = 'none';
+        applyPreviewMode();
         return;
       }
 
       state.accessToken = session.access_token;
 
-      // Check billing to set previewMode
       try {
         const billRes = await fetch('/.netlify/functions/billing-status', {
           method: 'POST',
@@ -592,12 +862,14 @@ Phone: 1-800-555-0100`;
           body: JSON.stringify({}),
         });
         const bill = await billRes.json().catch(() => ({}));
-        state.previewMode = !(billRes.ok && bill.paid === true);
+        const billPaid = billRes.ok && bill.paid === true;
+        state.previewMode = !billPaid && !state.jobPaid;
       } catch (_) {
-        state.previewMode = true;
+        if (!state.jobPaid) state.previewMode = true;
       }
 
       document.getElementById('authBanner').style.display = 'none';
+      applyPreviewMode();
     }
 
     function syncAnalyzeBtn() {
@@ -1086,22 +1358,26 @@ Phone: 1-800-555-0100`;
 
     document.getElementById('btnGenerate').addEventListener('click', async () => {
       const { data: { user } } = await wizardSupabase.auth.getUser();
-      if (!user || !state.accessToken) {
-        window.location.href = '/pricing';
-        return;
-      }
-      const billRes = await fetch('/api/billing-status', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: 'Bearer ' + state.accessToken,
-        },
-        body: JSON.stringify({}),
-      });
-      const bill = await billRes.json().catch(() => ({}));
-      if (!billRes.ok || bill.paid !== true) {
-        window.location.href = '/pricing';
-        return;
+      const useStripePaid = !!(state.jobPaid && state.stripeSessionId);
+
+      if (!useStripePaid) {
+        if (!user || !state.accessToken) {
+          window.location.href = '/pricing';
+          return;
+        }
+        const billRes = await fetch('/api/billing-status', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: 'Bearer ' + state.accessToken,
+          },
+          body: JSON.stringify({}),
+        });
+        const bill = await billRes.json().catch(() => ({}));
+        if (!billRes.ok || bill.paid !== true) {
+          window.location.href = '/pricing';
+          return;
+        }
       }
       showErr('step3Error', '');
       const additional = state.strategy === 'other'
@@ -1109,15 +1385,18 @@ Phone: 1-800-555-0100`;
         : '';
       showLoading('step3Loading', true);
       try {
+        const letterBody = {
+          analysis: state.analysis,
+          strategy: state.strategy === 'other' ? 'custom' : state.strategy,
+          insuredName: document.getElementById('fillName').value,
+          insuredAddress: document.getElementById('fillAddress').value,
+          additionalContext: additional,
+        };
+        if (useStripePaid) letterBody.stripe_session_id = state.stripeSessionId;
+
         const res = await wizardFetch('/.netlify/functions/generate-claim-letter', {
           method: 'POST',
-          body: JSON.stringify({
-            analysis: state.analysis,
-            strategy: state.strategy === 'other' ? 'custom' : state.strategy,
-            insuredName: document.getElementById('fillName').value,
-            insuredAddress: document.getElementById('fillAddress').value,
-            additionalContext: additional,
-          }),
+          body: JSON.stringify(letterBody),
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
@@ -1283,7 +1562,10 @@ Phone: 1-800-555-0100`;
       Object.assign(state, {
         fileBase64: null, fileType: null, analysis: null,
         strategy: null, letterRaw: '', editing: false, prefillApplied: false,
+        stripeSessionId: null,
+        jobPaid: false,
       });
+      try { sessionStorage.removeItem('stripeSessionId'); } catch (_) {}
       document.querySelectorAll('input,textarea,select').forEach(el => {
         if (el.id === 'fillDate') return;
         if (el.type === 'button' || el.type === 'file') return;
@@ -1297,12 +1579,15 @@ Phone: 1-800-555-0100`;
       showErr('step4Error', '');
       document.getElementById('btnAnalyze').disabled = true;
       document.getElementById('btnGenerate').disabled = true;
+      if (!state.accessToken) state.previewMode = true;
       setStep(1);
+      applyPreviewMode();
     });
 
     await boot();
     syncAnalyzeBtn();
     updateProgressNav();
+    applyPreviewMode();
   </script>
 </body>
 </html>

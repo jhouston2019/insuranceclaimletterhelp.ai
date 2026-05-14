@@ -1,5 +1,6 @@
 const Stripe = require("stripe");
 const { createClient } = require("@supabase/supabase-js");
+const { getSupabaseAdmin } = require("./_supabase");
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
 
@@ -23,17 +24,6 @@ exports.handler = async (event) => {
   }
 
   try {
-    const authHeader =
-      event.headers.authorization || event.headers.Authorization || "";
-    const bearer = authHeader.replace(/^Bearer\s+/i, "").trim();
-    if (!bearer) {
-      return {
-        statusCode: 401,
-        headers: { ...corsOk, "Content-Type": "application/json" },
-        body: JSON.stringify({ error: "Authentication required" }),
-      };
-    }
-
     const url = process.env.SUPABASE_URL;
     const anonKey = process.env.SUPABASE_ANON_KEY;
     if (!url || !anonKey) {
@@ -48,22 +38,27 @@ exports.handler = async (event) => {
       auth: { persistSession: false, autoRefreshToken: false },
     });
 
-    const {
-      data: { user },
-      error: authErr,
-    } = await authClient.auth.getUser(bearer);
+    let userId = null;
+    let userEmail = null;
+    const authHeader =
+      event.headers.authorization || event.headers.Authorization || "";
+    const bearer = authHeader.replace(/^Bearer\s+/i, "").trim();
 
-    if (authErr || !user?.email) {
-      return {
-        statusCode: 401,
-        headers: { ...corsOk, "Content-Type": "application/json" },
-        body: JSON.stringify({ error: "Invalid session" }),
-      };
+    if (bearer) {
+      const {
+        data: { user },
+        error: authErr,
+      } = await authClient.auth.getUser(bearer);
+      if (!authErr && user?.id) {
+        userId = user.id;
+        if (user.email) userEmail = user.email;
+      }
     }
 
     const body = JSON.parse(event.body || "{}");
     const recordId = body.recordId ?? body.job_id ?? null;
     const plan = body.plan || "single";
+    const wizardState = body.wizardState;
 
     const priceId = process.env.STRIPE_PRICE_RESPONSE || "price_19USD_single";
 
@@ -79,32 +74,65 @@ exports.handler = async (event) => {
     const metadata = {
       plan,
       plan_type: plan,
-      supabase_user_id: user.id,
-      user_id: user.id,
       product_type: "insurance_claim",
     };
+    if (userId) {
+      metadata.user_id = userId;
+      metadata.supabase_user_id = userId;
+    }
 
     if (recordId != null && recordId !== "") {
       metadata.job_id = String(recordId);
       metadata.recordId = String(recordId);
     }
 
-    // customer_email: receipts & Checkout prefill — from verified JWT only (getUser above).
-    const session = await stripe.checkout.sessions.create({
+    const successUrlDefault = `${base}/success?session_id={CHECKOUT_SESSION_ID}`;
+    const successUrlWizard = `${base}/claim-defense.html?session_id={CHECKOUT_SESSION_ID}`;
+    const successUrl =
+      wizardState != null ? successUrlWizard : successUrlDefault;
+    const cancelUrl =
+      wizardState != null ? `${base}/claim-defense.html` : `${base}/pricing`;
+
+    /** @type {import('stripe').Stripe.Checkout.SessionCreateParams} */
+    const sessionParams = {
       payment_method_types: ["card"],
-      line_items: [
-        {
-          price: priceId,
-          quantity: 1,
-        },
-      ],
+      line_items: [{ price: priceId, quantity: 1 }],
       mode: "payment",
-      customer_email: user.email,
-      success_url: `${base}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${base}/pricing`,
-      client_reference_id: user.id,
+      success_url: successUrl,
+      cancel_url: cancelUrl,
       metadata,
-    });
+    };
+
+    if (userEmail) {
+      sessionParams.customer_email = userEmail;
+      sessionParams.client_reference_id = userId;
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionParams);
+
+    if (wizardState != null && typeof wizardState === "object") {
+      const admin = getSupabaseAdmin();
+      const { error: insErr } = await admin
+        .from("wizard_checkout_sessions")
+        .insert({
+          stripe_session_id: session.id,
+          state: wizardState,
+        });
+      if (insErr) {
+        console.error("wizard_checkout_sessions insert:", insErr);
+        return {
+          statusCode: 500,
+          headers: {
+            ...corsOk,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            error: "Could not start checkout (state save failed)",
+            details: insErr.message,
+          }),
+        };
+      }
+    }
 
     return {
       statusCode: 200,

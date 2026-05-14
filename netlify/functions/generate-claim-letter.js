@@ -3,12 +3,15 @@
  */
 
 const OpenAI = require("openai");
+const Stripe = require("stripe");
 const {
   corsHeaders,
   optionsResponse,
   verifyWizardAuth,
 } = require("./_wizardAuth");
 const { getSupabaseAdmin } = require("./_supabase");
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
 
 const LETTER_SYSTEM_PROMPT = `You are an expert insurance claim dispute specialist with
 20 years of experience in policyholder advocacy, bad faith
@@ -192,6 +195,28 @@ function normalizeStrategy(s) {
   return "dispute";
 }
 
+async function stripeWizardPaid(sessionId) {
+  if (!sessionId || typeof sessionId !== "string" || !process.env.STRIPE_SECRET_KEY) {
+    return false;
+  }
+  const id = sessionId.trim();
+  if (!id) return false;
+  try {
+    const sess = await stripe.checkout.sessions.retrieve(id);
+    if (sess.payment_status !== "paid") return false;
+    const admin = getSupabaseAdmin();
+    const { data: row } = await admin
+      .from("wizard_checkout_sessions")
+      .select("id")
+      .eq("stripe_session_id", id)
+      .maybeSingle();
+    return !!(row && row.id);
+  } catch (e) {
+    console.error("generate-claim-letter stripeWizardPaid:", e.message || e);
+    return false;
+  }
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod === "OPTIONS") return optionsResponse();
   if (event.httpMethod !== "POST") {
@@ -202,21 +227,58 @@ exports.handler = async (event) => {
     };
   }
 
+  let body;
+  try {
+    body = JSON.parse(event.body || "{}");
+  } catch {
+    return {
+      statusCode: 400,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: "Invalid JSON body" }),
+    };
+  }
+
+  const stripeSid =
+    typeof body.stripe_session_id === "string"
+      ? body.stripe_session_id.trim()
+      : "";
+
   const auth = await verifyWizardAuth(event);
-  if (!auth.ok) return auth.response;
 
-  const admin = getSupabaseAdmin();
-  const { data: entitlement } = await admin
-    .from("user_entitlements")
-    .select("paid, active")
-    .eq("user_id", auth.user.id)
-    .maybeSingle();
+  let subscriptionPaid = false;
+  if (auth.ok && auth.user) {
+    const admin = getSupabaseAdmin();
+    const { data: entitlement } = await admin
+      .from("user_entitlements")
+      .select("paid, active")
+      .eq("user_id", auth.user.id)
+      .maybeSingle();
 
-  if (
-    !entitlement ||
-    entitlement.paid !== true ||
-    entitlement.active === false
-  ) {
+    subscriptionPaid = !!(
+      entitlement &&
+      entitlement.paid === true &&
+      entitlement.active !== false
+    );
+  }
+
+  let paidViaStripe = false;
+  if (!subscriptionPaid && stripeSid) {
+    paidViaStripe = await stripeWizardPaid(stripeSid);
+  }
+
+  if (!subscriptionPaid && !paidViaStripe) {
+    if (!auth.ok) {
+      if (stripeSid) {
+        return {
+          statusCode: 402,
+          headers: corsHeaders,
+          body: JSON.stringify({
+            error: "Invalid or unpaid checkout session",
+          }),
+        };
+      }
+      return auth.response;
+    }
     return {
       statusCode: 402,
       headers: corsHeaders,
@@ -225,7 +287,6 @@ exports.handler = async (event) => {
   }
 
   try {
-    const body = JSON.parse(event.body || "{}");
     const {
       analysis,
       strategy,

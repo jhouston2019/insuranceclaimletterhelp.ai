@@ -16,6 +16,7 @@
 /api/auth/create-session-from-stripe   /.netlify/functions/create-session-from-stripe   200
 /api/auth/me                            /.netlify/functions/auth-me                        200
 /api/verify-payment                     /.netlify/functions/verify-payment                 200
+/api/verify-session                     /.netlify/functions/verify-session                 200
 /api/billing-status                      /.netlify/functions/billing-status                 200
 /api/usage                             /.netlify/functions/usage                          200
 /api/recover-payment-state             /.netlify/functions/recover-payment-state          200
