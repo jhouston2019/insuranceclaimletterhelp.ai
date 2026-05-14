@@ -1402,16 +1402,7 @@ Phone: 1-800-555-0100`;
     document.getElementById('btnGenerate').addEventListener('click', async () => {
       const useStripePaid = !!(state.jobPaid && state.stripeSessionId);
 
-      if (!useStripePaid) {
-        if (!state.accessToken && !state.stripeSessionId) {
-          handleUnlock();
-          return;
-        }
-        const { data: { user } } = await wizardSupabase.auth.getUser();
-        if (!user || !state.accessToken) {
-          window.location.href = '/pricing';
-          return;
-        }
+      if (!useStripePaid && state.accessToken) {
         const billRes = await fetch('/api/billing-status', {
           method: 'POST',
           headers: {
