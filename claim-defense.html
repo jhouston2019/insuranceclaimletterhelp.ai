@@ -457,6 +457,7 @@ Phone: 1-800-555-0100`;
     const state = {
       step: 1,
       accessToken: null,
+      previewMode: true,
       fileBase64: null,
       fileType: null,
       analysis: null,
@@ -545,31 +546,57 @@ Phone: 1-800-555-0100`;
 
       if (isPlaceholder(SUPABASE_URL) || isPlaceholder(SUPABASE_ANON_KEY)) {
         document.body.innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif;padding:2rem;background:#0f1e35;">
-      <div style="max-width:480px;text-align:center;color:#e2e8f0;">
-        <h2 style="color:#fca5a5;margin-bottom:1rem;">Configuration Error</h2>
-        <p style="color:#cbd5e1;line-height:1.6;">This application is not configured correctly. If you are a user, please contact support. If you are a developer, check that SUPABASE_URL and SUPABASE_ANON_KEY are set in your environment.</p>
-      </div>
-    </div>`;
+      <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif;padding:2rem;background:#0f1e35;">
+        <div style="max-width:480px;text-align:center;color:#e2e8f0;">
+          <h2 style="color:#fca5a5;margin-bottom:1rem;">Configuration Error</h2>
+          <p style="color:#cbd5e1;line-height:1.6;">This application is not configured correctly. If you are a user, please contact support. If you are a developer, check that SUPABASE_URL and SUPABASE_ANON_KEY are set in your environment.</p>
+        </div>
+      </div>`;
         throw new Error('FATAL: Supabase config missing or placeholder. Wizard halted.');
       }
 
       const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
       wizardSupabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-      const { data: { user }, error: guErr } = await wizardSupabase.auth.getUser();
-      if (guErr || !user) {
-        window.location.href = '/login';
+      // Try to get existing session — guests proceed without one
+      const { data: { user } } = await wizardSupabase.auth.getUser();
+
+      if (!user) {
+        // Guest path — allow through, preview mode on
+        state.accessToken = null;
+        state.previewMode = true;
+        document.getElementById('authBanner').style.display = 'none';
         return;
       }
 
+      // Signed-in user — get token
       const { data: { session }, error: sessErr } = await wizardSupabase.auth.getSession();
       if (sessErr || !session?.access_token) {
-        window.location.href = '/login';
+        // Session invalid — treat as guest
+        state.accessToken = null;
+        state.previewMode = true;
+        document.getElementById('authBanner').style.display = 'none';
         return;
       }
 
       state.accessToken = session.access_token;
+
+      // Check billing to set previewMode
+      try {
+        const billRes = await fetch('/.netlify/functions/billing-status', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: 'Bearer ' + session.access_token,
+          },
+          body: JSON.stringify({}),
+        });
+        const bill = await billRes.json().catch(() => ({}));
+        state.previewMode = !(billRes.ok && bill.paid === true);
+      } catch (_) {
+        state.previewMode = true;
+      }
+
       document.getElementById('authBanner').style.display = 'none';
     }
 
@@ -885,10 +912,6 @@ Phone: 1-800-555-0100`;
 
     document.getElementById('btnAnalyze').addEventListener('click', async () => {
       showErr('step1Error', '');
-      if (state.accessToken === null) {
-        showErr('step1Error', 'Sign in or enable wizard access to continue.');
-        return;
-      }
       const text = document.getElementById('claimText').value.trim();
       if (!text && !state.fileBase64) {
         showErr('step1Error', 'Paste letter text or upload a file.');
@@ -1063,12 +1086,8 @@ Phone: 1-800-555-0100`;
 
     document.getElementById('btnGenerate').addEventListener('click', async () => {
       const { data: { user } } = await wizardSupabase.auth.getUser();
-      if (!user) {
-        window.location.href = '/login';
-        return;
-      }
-      if (!state.accessToken) {
-        window.location.href = '/login';
+      if (!user || !state.accessToken) {
+        window.location.href = '/pricing';
         return;
       }
       const billRes = await fetch('/api/billing-status', {

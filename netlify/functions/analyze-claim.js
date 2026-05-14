@@ -6,7 +6,7 @@ const OpenAI = require("openai");
 const {
   corsHeaders,
   optionsResponse,
-  verifyWizardAuth,
+  optionalWizardAuth,
 } = require("./_wizardAuth.js");
 const { recordReviewUsageIncrement } = require("./_billing-snapshot");
 
@@ -317,8 +317,7 @@ exports.handler = async (event) => {
     };
   }
 
-  const auth = await verifyWizardAuth(event);
-  if (!auth.ok) return auth.response;
+  const auth = await optionalWizardAuth(event);
 
   let letterText = "";
   let usageLog = null;
@@ -333,7 +332,7 @@ exports.handler = async (event) => {
       return {
         statusCode: 200,
         headers: corsHeaders,
-        body: JSON.stringify({ analysis, confidence: "low" }),
+        body: JSON.stringify({ analysis, confidence: "low", preview: auth.preview }),
       };
     }
 
@@ -352,6 +351,7 @@ exports.handler = async (event) => {
         headers: corsHeaders,
         body: JSON.stringify({
           error: "Letter text is required (paste text or upload a readable image).",
+          preview: auth.preview,
         }),
       };
     }
@@ -406,19 +406,21 @@ exports.handler = async (event) => {
       })
     );
 
-    const userId = auth.user?.id;
-    if (userId && typeof userId === "string") {
-      try {
-        await recordReviewUsageIncrement(userId);
-      } catch (usageErr) {
-        console.warn("recordReviewUsageIncrement:", usageErr);
+    if (!auth.preview && auth.user?.id) {
+      const userId = auth.user.id;
+      if (typeof userId === "string") {
+        try {
+          await recordReviewUsageIncrement(userId);
+        } catch (usageErr) {
+          console.warn("recordReviewUsageIncrement:", usageErr);
+        }
       }
     }
 
     return {
       statusCode: 200,
       headers: corsHeaders,
-      body: JSON.stringify({ analysis, confidence }),
+      body: JSON.stringify({ analysis, confidence, preview: auth.preview }),
     };
   } catch (err) {
     console.error("analyze-claim:", err);
@@ -433,7 +435,7 @@ exports.handler = async (event) => {
     return {
       statusCode: 200,
       headers: corsHeaders,
-      body: JSON.stringify({ analysis, confidence: "low" }),
+      body: JSON.stringify({ analysis, confidence: "low", preview: auth.preview }),
     };
   }
 };

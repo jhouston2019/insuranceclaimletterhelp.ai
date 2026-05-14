@@ -77,4 +77,36 @@ async function verifyWizardAuth(event) {
   return { ok: true, user };
 }
 
-module.exports = { corsHeaders, optionsResponse, verifyWizardAuth };
+async function optionalWizardAuth(event) {
+  const authHeader =
+    event.headers.authorization || event.headers.Authorization || "";
+  const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+
+  // No token — guest path, allow through
+  if (!token || token.toLowerCase() === "bypass") {
+    return { ok: true, user: null, preview: true };
+  }
+
+  // Token present — validate it
+  const url = process.env.SUPABASE_URL;
+  const anonKey = process.env.SUPABASE_ANON_KEY;
+  if (!url || !anonKey) {
+    return { ok: true, user: null, preview: true };
+  }
+
+  const supabase = createClient(url, anonKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser(token);
+  if (error || !user) {
+    return { ok: true, user: null, preview: true };
+  }
+
+  return { ok: true, user, preview: false };
+}
+
+module.exports = { corsHeaders, optionsResponse, verifyWizardAuth, optionalWizardAuth };
