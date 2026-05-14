@@ -165,64 +165,69 @@
       .btn-row .btn { margin-right: 0; }
     }
 
-    /* Preview blur and unlock overlay */
-    .preview-section {
-      position: relative;
-    }
-    .preview-blur-overlay {
-      position: absolute;
-      inset: 0;
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
-      background: rgba(255,255,255,0.15);
+    .unlock-panel {
+      display: none;
+      margin-top: 1.25rem;
+      padding: 1.25rem;
+      border: 1px solid var(--border);
       border-radius: 10px;
-      z-index: 10;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 32px 24px;
-      text-align: center;
+      background: #f8fafc;
+      border-left: 4px solid var(--navy);
     }
-    .unlock-box {
-      background: #fff;
-      border: 2px solid #0f1e35;
-      border-radius: 12px;
-      padding: 28px 32px;
-      max-width: 420px;
-      width: 100%;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.18);
-    }
-    .unlock-box h3 {
-      font-family: Georgia, serif;
-      margin: 0 0 8px;
-      font-size: 1.2rem;
-      color: #0f1e35;
-    }
-    .unlock-box p {
-      color: #6b7280;
-      font-size: 0.9rem;
-      margin: 0 0 20px;
-    }
-    .btn-unlock {
-      background: #0f1e35;
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      padding: 14px 28px;
-      font-size: 1rem;
+    .unlock-panel.show { display: block; }
+    .unlock-panel-title {
       font-weight: 700;
-      cursor: pointer;
-      width: 100%;
+      font-size: 1.05rem;
+      margin: 0 0 0.5rem;
+      color: #0f172a;
     }
-    .btn-unlock:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-    .unlock-price {
-      font-size: 0.85rem;
+    .unlock-panel-text {
+      font-size: 0.925rem;
       color: #6b7280;
-      margin-top: 10px;
+      margin: 0 0 1rem;
+      line-height: 1.55;
+    }
+    .unlock-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: center;
+    }
+    .wizard-del-inline {
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: center;
+    }
+    body.audit-wizard-preview .wizard-hide-in-preview {
+      display: none !important;
+    }
+    .wizard-preview-mask {
+      position: relative;
+      isolation: isolate;
+      border-radius: 8px;
+    }
+    .wizard-preview-mask.preview-bottom-lock::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 50%;
+      z-index: 2;
+      pointer-events: auto;
+      cursor: default;
+      background: rgba(248, 250, 252, 0.45);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-radius: 0 0 8px 8px;
+    }
+    .wizard-preview-mask.preview-bottom-lock.letter-bottom-60::after {
+      height: 60%;
+    }
+    .wizard-preview-mask.letter-bottom-60 {
+      border-radius: 8px;
+      overflow: hidden;
     }
   </style>
 </head>
@@ -238,6 +243,12 @@
   </nav>
 
   <div class="wrap">
+    <p id="wizardPreviewBanner" style="font-size:0.875rem;color:#6b7280;margin:0 0 0.75rem;">
+      Walk all four steps in a free preview. On Analysis, the lower
+      half of that screen is blurred until checkout; on Letter, the
+      bottom 60% of the letter text is blurred. Strategy stays clear.
+      Use step 4 to unlock the full deliverable.
+    </p>
     <div class="progress" id="progressBar">
       <div class="p active" data-s="1">1. Input</div>
       <div class="p" data-s="2">2. Analysis</div>
@@ -329,42 +340,44 @@
 
     <!-- Step 2 -->
     <div class="step card" id="step2" style="padding:0;overflow:hidden;">
-      <div class="analysis-bar">
-        <div>
-          <div class="muted" style="color:#cbd5e1;font-size:0.8rem;">Analysis</div>
-          <div class="serif" style="font-size:1.35rem;" id="analysisTitle">—</div>
+      <div id="step2BlurWrap" class="wizard-preview-mask">
+        <div class="analysis-bar">
+          <div>
+            <div class="muted" style="color:#cbd5e1;font-size:0.8rem;">Analysis</div>
+            <div class="serif" style="font-size:1.35rem;" id="analysisTitle">—</div>
+          </div>
+          <div style="text-align:right;">
+            <span id="riskBadge" class="risk-pill risk-moderate">—</span>
+            <div id="criticalExtra" class="critical-msg" style="display:none;">
+              Download letter and consult a professional
+            </div>
+          </div>
         </div>
-        <div style="text-align:right;">
-          <span id="riskBadge" class="risk-pill risk-moderate">—</span>
-          <div id="criticalExtra" class="critical-msg" style="display:none;">Download letter and consult a professional</div>
+        <div class="step2-body">
+          <div class="metrics" id="metricsRow"></div>
+          <h3 class="section-title">What the insurer is claiming</h3>
+          <p id="plainEnglish"></p>
+          <p class="muted" id="whatIfIgnored" style="font-style:italic;"></p>
+          <h3 class="section-title">Procedural defects identified</h3>
+          <div class="amber">
+            <strong>These gaps weaken the insurer's position</strong>
+            <ul class="proc-list" id="procList"></ul>
+          </div>
+          <h3 class="section-title">Strongest dispute angles</h3>
+          <ul id="winList"></ul>
+          <h3 class="section-title">What must be addressed in your response</h3>
+          <ul id="keyList"></ul>
+          <h3 class="section-title">Gather these before responding</h3>
+          <ul id="docList"></ul>
+          <h3 class="section-title">Escalation options</h3>
+          <ol id="escList"></ol>
         </div>
       </div>
-      <div class="preview-section">
-      <div class="step2-body">
-        <div class="metrics" id="metricsRow"></div>
-        <h3 class="section-title">What the insurer is claiming</h3>
-        <p id="plainEnglish"></p>
-        <p class="muted" id="whatIfIgnored" style="font-style:italic;"></p>
-
-        <h3 class="section-title">Procedural defects identified</h3>
-        <div class="amber">
-          <strong>These gaps weaken the insurer's position</strong>
-          <ul class="proc-list" id="procList"></ul>
-        </div>
-
-        <h3 class="section-title">Strongest dispute angles</h3>
-        <ul id="winList"></ul>
-
-        <h3 class="section-title">What must be addressed in your response</h3>
-        <ul id="keyList"></ul>
-
-        <h3 class="section-title">Gather these before responding</h3>
-        <ul id="docList"></ul>
-
-        <h3 class="section-title">Escalation options</h3>
-        <ol id="escList"></ol>
-
-        <p class="muted" style="margin-top:20px;">This tool does not constitute legal advice. Review all deadlines and rights carefully.</p>
+      <div class="step2-body" style="padding-top:0;">
+        <p class="muted" style="margin-top:20px;">
+          This tool does not constitute legal advice.
+          Review all deadlines and rights carefully.
+        </p>
         <div class="btn-row" style="margin-top:12px;">
           <button type="button" id="btnDownloadAnalysisPdf" class="btn btn-secondary">Download Analysis PDF</button>
           <button type="button" id="btnDownloadAnalysisWord" class="btn btn-secondary">Download Analysis Word</button>
@@ -375,41 +388,24 @@
         </div>
         <div id="step2Error" class="error-inline"></div>
       </div>
-      <div class="preview-blur-overlay" id="step2BlurOverlay" style="display:none;">
-      <div class="unlock-box">
-        <h3>Unlock Your Full Analysis</h3>
-        <p>Your claim has been analyzed. Unlock the full breakdown, dispute strategies, and a professionally written response letter.</p>
-        <button class="btn-unlock" id="btnUnlock">Unlock Full Report — $29</button>
-        <div class="unlock-price">One-time payment · PDF + Word download included</div>
-      </div>
-    </div>
-      </div>
     </div>
 
     <!-- Step 3 -->
     <div class="step card" id="step3">
       <h2 class="serif">Response strategy</h2>
-      <p class="muted">Select one approach. The recommended option reflects your claim analysis.</p>
-      <div class="preview-section">
+      <p class="muted">
+        Select one approach. The recommended option reflects your claim analysis.
+      </p>
       <div class="strategy-grid" id="strategyGrid"></div>
       <div id="customWrap" style="display:none;margin-top:16px;">
         <label for="customStrategyText">Describe your approach</label>
-        <textarea id="customStrategyText" rows="5" placeholder="e.g. The insurer applied the wear and tear exclusion without providing any engineering report or moisture testing..."></textarea>
+        <textarea id="customStrategyText" rows="5" placeholder="Describe your custom strategy..."></textarea>
       </div>
-      <div class="preview-blur-overlay" id="step3BlurOverlay" style="display:none;">
-      <div class="unlock-box">
-        <h3>Unlock Your Response Strategy</h3>
-        <p>See all recommended dispute strategies and generate your professional response letter.</p>
-        <button class="btn-unlock" id="btnUnlock3">Unlock Full Report — $29</button>
-        <div class="unlock-price">One-time payment · PDF + Word download included</div>
-      </div>
-    </div>
-      </div>
+      <div id="step3Detail" class="muted" style="margin-top:16px;display:none;"></div>
       <div class="btn-row" style="margin-top:20px;">
         <button type="button" class="btn btn-secondary" id="btnBack3">← Back</button>
         <button type="button" class="btn btn-primary" id="btnGenerate" disabled>Generate My Dispute Letter →</button>
       </div>
-      <div id="step3Detail" class="muted" style="margin-top:16px;display:none;"></div>
       <div id="step3Error" class="error-inline"></div>
     </div>
 
@@ -417,12 +413,16 @@
     <div class="step card" id="step4">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
         <h2 class="serif" id="letterTitleBar" style="margin:0;">Your Insurance Dispute Letter</h2>
-        <button type="button" class="btn btn-secondary" id="btnEditToggle">Edit letter</button>
+        <button type="button" class="btn btn-secondary" id="btnEditToggle" style="display:none;">Edit letter</button>
       </div>
-      <div id="letterBody" contenteditable="false"></div>
+
+      <div id="step4BlurWrap" class="wizard-preview-mask letter-bottom-60">
+        <div id="letterBody" contenteditable="false"></div>
+      </div>
+
       <div id="letterAttorneyNote" style="display:none;" aria-live="polite"></div>
 
-      <h3 class="section-title">Fill placeholders</h3>
+      <h3 class="section-title" style="margin-top:1.25rem;">Fill placeholders</h3>
       <p class="muted">Complete your details. [DATE] defaults to today.</p>
       <input type="hidden" id="fillDate" />
       <div class="row2">
@@ -453,19 +453,46 @@
         <button type="button" class="btn btn-primary" id="btnFillPh">Fill placeholders</button>
       </div>
 
-      <div class="btn-row" style="margin-top:20px;">
+      <div class="btn-row" style="margin-top:20px;flex-wrap:wrap;align-items:center;gap:0.75rem;">
         <button type="button" class="btn btn-secondary" id="btnBack4">← Back to strategy</button>
-        <button type="button" class="btn btn-secondary" id="btnCopy">Copy letter</button>
-        <button type="button" class="btn btn-secondary" id="btnPdf">Download PDF</button>
-        <button type="button" class="btn btn-secondary" id="btnDocx">Download Word</button>
+        <span class="wizard-del-inline wizard-hide-in-preview">
+          <button type="button" class="btn btn-primary" id="btnCopy">Copy letter</button>
+          <button type="button" class="btn btn-primary" id="btnPdf">Download PDF</button>
+          <button type="button" class="btn btn-primary" id="btnDocx">Download Word</button>
+        </span>
+      </div>
+
+      <div id="unlockPanel" class="unlock-panel" aria-live="polite">
+        <p class="unlock-panel-title">Unlock your full deliverable</p>
+        <p class="unlock-panel-text">
+          Use <strong>Fill placeholders</strong> above to complete your details anytime. When you're ready, unlock for $29 — one-time payment so your purchase is tied to your account and you can return to this letter, downloads, and full analysis.
+        </p>
+        <p id="unlockCheckoutErr" style="color:#b91c1c;font-size:0.9rem;margin:0 0 0.75rem;min-height:1.25em;"></p>
+        <div class="unlock-actions">
+          <button type="button" class="btn btn-primary" id="unlockCheckoutBtn">Get Your Documents Now</button>
+        </div>
+      </div>
+
+      <div id="postUnlockPanel" class="unlock-panel" style="display:none;">
+        <p id="unlockConfirm">Your results are unlocked.</p>
+        <div id="saveResultsBlock">
+          <h3>Save your results for later</h3>
+          <p>Create a free account to access your letter from any device.</p>
+          <button type="button" class="btn btn-primary" id="btnCreateAccount">Create Free Account</button>
+        </div>
+        <button type="button" class="btn btn-secondary" id="btnReviewAnother" style="margin-top:1rem;">Review Another Notice</button>
+      </div>
+
+      <div class="btn-row" style="margin-top:16px;">
         <button type="button" class="btn btn-secondary" id="btnStartOver">Start over</button>
       </div>
+
       <div id="step4Error" class="error-inline"></div>
       <div class="amber" style="margin-top:16px;">
         This letter is a starting point. For complex denials, bad faith situations, or claims exceeding $25,000, consider having a licensed public adjuster or insurance attorney review before sending.
       </div>
       <p class="muted" style="margin-top:12px;">
-        This tool does not constitute legal advice and does not create an attorney-client relationship. It is not a substitute for a licensed public adjuster or insurance attorney in complex matters.
+        This tool does not constitute legal advice and does not create an attorney-client relationship.
       </p>
     </div>
   </div>
@@ -589,7 +616,8 @@ Phone: 1-800-555-0100`;
         noteEl.style.display = 'block';
       }
       updateProgressNav();
-      if ([2, 3, 4].includes(n)) applyPreviewMode();
+      syncWizardPreviewBanner();
+      applyWizardBlur();
     }
 
     function showLoading(id, on, text) {
@@ -688,10 +716,6 @@ Phone: 1-800-555-0100`;
 
         try { sessionStorage.setItem('stripeSessionId', sessionId); } catch (_) {}
 
-        const url = new URL(window.location.href);
-        url.searchParams.delete('session_id');
-        history.replaceState({}, '', url.toString());
-
         if (state.analysis) renderStep2();
 
         let targetStep = typeof ws.step === 'number' && ws.step >= 1 && ws.step <= 4
@@ -721,9 +745,19 @@ Phone: 1-800-555-0100`;
         }
 
         setStep(targetStep);
-        applyPreviewMode();
+        syncWizardPreviewBanner();
+        applyWizardBlur();
         syncAnalyzeBtn();
         updateProgressNav();
+
+        const postUnlockPanelEl = document.getElementById('postUnlockPanel');
+        if (postUnlockPanelEl) {
+          postUnlockPanelEl.style.display = 'block';
+          postUnlockPanelEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        history.replaceState({}, '', '/claim-defense.html');
+
         return true;
       } catch (e) {
         console.error('restoreWizardState error:', e);
@@ -731,34 +765,35 @@ Phone: 1-800-555-0100`;
       }
     }
 
-    function applyPreviewMode() {
-      const isPreview = state.previewMode;
+    function syncWizardPreviewBanner() {
+      const el = document.getElementById('wizardPreviewBanner');
+      if (!el) return;
+      el.style.display = state.previewMode === true ? '' : 'none';
+    }
 
-      const step2Overlay = document.getElementById('step2BlurOverlay');
-      if (step2Overlay) step2Overlay.style.display = isPreview ? 'flex' : 'none';
+    function applyWizardBlur() {
+      const locked = state.previewMode === true;
+      document.body.classList.toggle('audit-wizard-preview', locked);
+      const step2Mask = document.getElementById('step2BlurWrap');
+      const step4Mask = document.getElementById('step4BlurWrap');
+      if (step2Mask) step2Mask.classList.toggle('preview-bottom-lock', locked);
+      if (step4Mask) step4Mask.classList.toggle('preview-bottom-lock', locked);
+      const te = document.getElementById('btnEditToggle');
+      if (te) te.style.display = locked ? 'none' : '';
+      const up = document.getElementById('unlockPanel');
+      if (up) up.classList.toggle('show', locked && state.step === 4);
+    }
 
-      const step3Overlay = document.getElementById('step3BlurOverlay');
-      if (step3Overlay) step3Overlay.style.display = isPreview ? 'flex' : 'none';
-
-      const btnPdf = document.getElementById('btnPdf');
-      const btnDocx = document.getElementById('btnDocx');
-      if (btnPdf) {
-        btnPdf.disabled = isPreview;
-        btnPdf.title = isPreview ? 'Payment required' : '';
-      }
-      if (btnDocx) {
-        btnDocx.disabled = isPreview;
-        btnDocx.title = isPreview ? 'Payment required' : '';
-      }
+    function scrollUnlockPanelIntoView() {
+      const up = document.getElementById('unlockPanel');
+      if (up) up.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     async function handleUnlock() {
-      const b1 = document.getElementById('btnUnlock');
-      const b2 = document.getElementById('btnUnlock3');
-      const btns = [b1, b2].filter(Boolean);
-      btns.forEach(b => {
-        if (b) { b.disabled = true; b.textContent = 'Redirecting to payment…'; }
-      });
+      const btn = document.getElementById('unlockCheckoutBtn');
+      const errEl = document.getElementById('unlockCheckoutErr');
+      if (errEl) errEl.textContent = '';
+      if (btn) { btn.disabled = true; btn.textContent = 'Redirecting to payment…'; }
 
       try {
         const wizardState = captureWizardState();
@@ -777,17 +812,25 @@ Phone: 1-800-555-0100`;
         if (data.url) {
           window.location.href = data.url;
         } else {
-          btns.forEach(b => { if (b) { b.disabled = false; b.textContent = 'Unlock Full Report — $29'; } });
-          alert('Could not start checkout: ' + (data.error || 'Unknown error'));
+          if (btn) { btn.disabled = false; btn.textContent = 'Get Your Documents Now'; }
+          if (errEl) errEl.textContent = data.error || 'Unknown error';
         }
       } catch (e) {
-        btns.forEach(b => { if (b) { b.disabled = false; b.textContent = 'Unlock Full Report — $29'; } });
-        alert('Network error. Please try again.');
+        if (btn) { btn.disabled = false; btn.textContent = 'Get Your Documents Now'; }
+        if (errEl) errEl.textContent = 'Network error. Please try again.';
       }
     }
 
-    document.getElementById('btnUnlock')?.addEventListener('click', handleUnlock);
-    document.getElementById('btnUnlock3')?.addEventListener('click', handleUnlock);
+    document.getElementById('unlockCheckoutBtn')?.addEventListener('click', handleUnlock);
+
+    document.getElementById('btnCreateAccount')?.addEventListener('click', () => {
+      const sid = state.stripeSessionId || '';
+      window.location.href = '/register.html' + (sid ? '?session_id=' + encodeURIComponent(sid) : '');
+    });
+
+    document.getElementById('btnReviewAnother')?.addEventListener('click', () => {
+      document.getElementById('btnStartOver')?.click();
+    });
 
     async function boot() {
       const SUPABASE_URL = document.querySelector('meta[name="supabase-url"]')?.content?.trim() || '';
@@ -817,7 +860,7 @@ Phone: 1-800-555-0100`;
         const ok = await restoreWizardState(sessionIdUrl);
         if (ok) {
           document.getElementById('authBanner').style.display = 'none';
-          applyPreviewMode();
+          syncWizardPreviewBanner(); applyWizardBlur();
           return;
         }
         try {
@@ -837,7 +880,7 @@ Phone: 1-800-555-0100`;
         state.accessToken = null;
         if (!state.jobPaid) state.previewMode = true;
         document.getElementById('authBanner').style.display = 'none';
-        applyPreviewMode();
+        syncWizardPreviewBanner(); applyWizardBlur();
         return;
       }
 
@@ -846,7 +889,7 @@ Phone: 1-800-555-0100`;
         state.accessToken = null;
         if (!state.jobPaid) state.previewMode = true;
         document.getElementById('authBanner').style.display = 'none';
-        applyPreviewMode();
+        syncWizardPreviewBanner(); applyWizardBlur();
         return;
       }
 
@@ -869,7 +912,7 @@ Phone: 1-800-555-0100`;
       }
 
       document.getElementById('authBanner').style.display = 'none';
-      applyPreviewMode();
+      syncWizardPreviewBanner(); applyWizardBlur();
     }
 
     function syncAnalyzeBtn() {
@@ -1357,10 +1400,14 @@ Phone: 1-800-555-0100`;
     });
 
     document.getElementById('btnGenerate').addEventListener('click', async () => {
-      const { data: { user } } = await wizardSupabase.auth.getUser();
       const useStripePaid = !!(state.jobPaid && state.stripeSessionId);
 
       if (!useStripePaid) {
+        if (!state.accessToken && !state.stripeSessionId) {
+          handleUnlock();
+          return;
+        }
+        const { data: { user } } = await wizardSupabase.auth.getUser();
         if (!user || !state.accessToken) {
           window.location.href = '/pricing';
           return;
@@ -1487,6 +1534,11 @@ Phone: 1-800-555-0100`;
     });
 
     document.getElementById('btnCopy').addEventListener('click', async () => {
+      if (state.previewMode === true) {
+        showErr('step4Error', 'Unlock your full deliverable to copy or download.');
+        scrollUnlockPanelIntoView();
+        return;
+      }
       const text = document.getElementById('letterBody').innerText;
       try {
         await navigator.clipboard.writeText(text);
@@ -1502,6 +1554,11 @@ Phone: 1-800-555-0100`;
 
     document.getElementById('btnPdf').addEventListener('click', async () => {
       showErr('step4Error', '');
+      if (state.previewMode === true) {
+        showErr('step4Error', 'Unlock your full deliverable to copy or download.');
+        scrollUnlockPanelIntoView();
+        return;
+      }
       showLoading('step4Loading', true);
       try {
         const letterText = document.getElementById('letterBody').innerText;
@@ -1534,6 +1591,11 @@ Phone: 1-800-555-0100`;
 
     document.getElementById('btnDocx').addEventListener('click', async () => {
       showErr('step4Error', '');
+      if (state.previewMode === true) {
+        showErr('step4Error', 'Unlock your full deliverable to copy or download.');
+        scrollUnlockPanelIntoView();
+        return;
+      }
       try {
         const letterText = document.getElementById('letterBody').innerText;
         const cleanText = letterText.replace(/\n?Note: Given the nature of this dispute[\s\S]*?structured starting point\./i, '').trim();
@@ -1574,6 +1636,10 @@ Phone: 1-800-555-0100`;
       document.getElementById('claimText').value = '';
       document.getElementById('fileNameDisplay').textContent = '';
       document.getElementById('letterBody').innerHTML = '';
+      const pup = document.getElementById('postUnlockPanel');
+      if (pup) pup.style.display = 'none';
+      const uerr = document.getElementById('unlockCheckoutErr');
+      if (uerr) uerr.textContent = '';
       showErr('step1Error', '');
       showErr('step3Error', '');
       showErr('step4Error', '');
@@ -1581,13 +1647,13 @@ Phone: 1-800-555-0100`;
       document.getElementById('btnGenerate').disabled = true;
       if (!state.accessToken) state.previewMode = true;
       setStep(1);
-      applyPreviewMode();
+      syncWizardPreviewBanner(); applyWizardBlur();
     });
 
     await boot();
     syncAnalyzeBtn();
     updateProgressNav();
-    applyPreviewMode();
+    syncWizardPreviewBanner(); applyWizardBlur();
   </script>
 </body>
 </html>
