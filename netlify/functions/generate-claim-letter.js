@@ -7,7 +7,7 @@ const Stripe = require("stripe");
 const {
   corsHeaders,
   optionsResponse,
-  verifyWizardAuth,
+  optionalWizardAuth,
 } = require("./_wizardAuth");
 const { getSupabaseAdmin } = require("./_supabase");
 
@@ -243,10 +243,11 @@ exports.handler = async (event) => {
       ? body.stripe_session_id.trim()
       : "";
 
-  const auth = await verifyWizardAuth(event);
+  const auth = await optionalWizardAuth(event);
+  // auth.ok is always true; auth.user === null means guest
 
   let subscriptionPaid = false;
-  if (auth.ok && auth.user) {
+  if (auth.user) {
     const admin = getSupabaseAdmin();
     const { data: entitlement } = await admin
       .from("user_entitlements")
@@ -266,25 +267,7 @@ exports.handler = async (event) => {
     paidViaStripe = await stripeWizardPaid(stripeSid);
   }
 
-  if (!subscriptionPaid && !paidViaStripe) {
-    if (!auth.ok) {
-      if (stripeSid) {
-        return {
-          statusCode: 402,
-          headers: corsHeaders,
-          body: JSON.stringify({
-            error: "Invalid or unpaid checkout session",
-          }),
-        };
-      }
-      return auth.response;
-    }
-    return {
-      statusCode: 402,
-      headers: corsHeaders,
-      body: JSON.stringify({ error: "Payment required" }),
-    };
-  }
+  const isPreview = !subscriptionPaid && !paidViaStripe;
 
   try {
     const {
@@ -311,6 +294,7 @@ exports.handler = async (event) => {
         body: JSON.stringify({
           letter:
             "Letter generation is unavailable (API not configured). Please try again later.",
+          preview: isPreview,
         }),
       };
     }
@@ -347,7 +331,7 @@ Generate the complete dispute letter now.`;
     return {
       statusCode: 200,
       headers: corsHeaders,
-      body: JSON.stringify({ letter }),
+      body: JSON.stringify({ letter, preview: isPreview }),
     };
   } catch (err) {
     console.error("generate-claim-letter:", err);
@@ -361,7 +345,7 @@ Generate the complete dispute letter now.`;
     return {
       statusCode: 200,
       headers: corsHeaders,
-      body: JSON.stringify({ letter: safe }),
+      body: JSON.stringify({ letter: safe, preview: isPreview }),
     };
   }
 };
