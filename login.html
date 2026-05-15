@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="supabase-url" content="SUPABASE_URL_PLACEHOLDER" />
+    <meta name="supabase-anon-key" content="SUPABASE_ANON_KEY_PLACEHOLDER" />
     <title>Sign in | Insurance Claim Response Pro</title>
     <link rel="canonical" href="https://insuranceclaimletterhelp.com/login.html">
 </head>
@@ -31,29 +33,46 @@
     </div>
 
     <script type="module">
-        import { signInWithMagicLink } from './src/components/Auth.js';
-        
-        function buildPostLoginRedirectUrl() {
-            const p = new URLSearchParams(window.location.search);
-            const r = p.get('redirect');
-            const sid = p.get('session_id');
-            let path = r && r.startsWith('/') ? r : '/app';
-            const u = new URL(path, window.location.origin);
-            if (sid) u.searchParams.set('session_id', sid);
-            return u.toString();
-        }
+  function buildPostLoginRedirectUrl() {
+    const p = new URLSearchParams(window.location.search);
+    const r = p.get('redirect');
+    const sid = p.get('session_id');
+    let path = r && r.startsWith('/') ? r : '/app';
+    const u = new URL(path, window.location.origin);
+    if (sid) u.searchParams.set('session_id', sid);
+    return u.toString();
+  }
 
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('email').value.trim();
-            const emailRedirectTo = buildPostLoginRedirectUrl();
-            const { error } = await signInWithMagicLink(email, emailRedirectTo);
-            if (error) {
-                alert('Could not send link: ' + error.message);
-                return;
-            }
-            document.getElementById('sent').style.display = 'block';
-        });
+  const urlMeta = document.querySelector('meta[name="supabase-url"]')
+    ?.content?.trim() || '';
+  const keyMeta = document.querySelector('meta[name="supabase-anon-key"]')
+    ?.content?.trim() || '';
+
+  document.getElementById('loginForm')
+    .addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value.trim();
+      const emailRedirectTo = buildPostLoginRedirectUrl();
+
+      if (!urlMeta || urlMeta.includes('PLACEHOLDER')) {
+        alert('Auth service not configured.');
+        return;
+      }
+
+      const { createClient } = await import(
+        'https://esm.sh/@supabase/supabase-js@2'
+      );
+      const supabase = createClient(urlMeta, keyMeta);
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: { emailRedirectTo },
+      });
+      if (error) {
+        alert('Could not send link: ' + error.message);
+        return;
+      }
+      document.getElementById('sent').style.display = 'block';
+    });
     </script>
 </body>
 </html>

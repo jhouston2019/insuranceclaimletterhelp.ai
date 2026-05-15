@@ -10,6 +10,7 @@ const skip = new Set([
   'build-inject.js',
   'claim-defense.html',
   'signup.html',
+  'login.html',
 ]);
 for (const item of fs.readdirSync('.')) {
   if (skip.has(item)) continue;
@@ -25,3 +26,8 @@ let signupHtml = fs.readFileSync('signup.html', 'utf8');
 signupHtml = signupHtml.replace('SUPABASE_URL_PLACEHOLDER', process.env.VITE_SUPABASE_URL || '');
 signupHtml = signupHtml.replace('SUPABASE_ANON_KEY_PLACEHOLDER', process.env.VITE_SUPABASE_ANON_KEY || '');
 fs.writeFileSync('dist/signup.html', signupHtml);
+
+let loginHtml = fs.readFileSync('login.html', 'utf8');
+loginHtml = loginHtml.replace('SUPABASE_URL_PLACEHOLDER', process.env.VITE_SUPABASE_URL || '');
+loginHtml = loginHtml.replace('SUPABASE_ANON_KEY_PLACEHOLDER', process.env.VITE_SUPABASE_ANON_KEY || '');
+fs.writeFileSync('dist/login.html', loginHtml);

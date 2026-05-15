@@ -209,7 +209,7 @@
           );
           const supabase = createClient(urlMeta, keyMeta);
 
-          const { data, error } = await supabase.auth.signUp({
+          const { error } = await supabase.auth.signUp({
             email,
             password,
           });
@@ -221,30 +221,13 @@
             return;
           }
 
+          // Account created — Supabase requires email confirmation
+          // before signInWithPassword works. Send to login with session_id.
           successMsg.classList.add('show');
-
-          // Sign in immediately after signup
-          const { data: signInData, error: signInErr } =
-            await supabase.auth.signInWithPassword({ email, password });
-
-          if (signInErr) {
-            // Signup succeeded but auto sign-in failed
-            // Send to login
-            setTimeout(() => {
-              window.location.href = '/login.html'
-                + (sessionId ? '?session_id=' + sessionId : '');
-            }, 1500);
-            return;
-          }
-
-          // Redirect back to wizard with session restored
-          const redirectTo = sessionId
-            ? '/claim-defense.html?session_id=' + sessionId
-            : '/dashboard.html';
-
           setTimeout(() => {
-            window.location.href = redirectTo;
-          }, 800);
+            window.location.href = '/login.html'
+              + (sessionId ? '?session_id=' + sessionId : '');
+          }, 1200);
 
         } catch (err) {
           showError('Something went wrong. Please try again.');
