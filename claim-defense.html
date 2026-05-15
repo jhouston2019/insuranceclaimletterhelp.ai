@@ -1414,8 +1414,10 @@ Phone: 1-800-555-0100`;
     document.getElementById('btnGenerate').addEventListener('click', async () => {
       const useStripePaid = !!(state.jobPaid && state.stripeSessionId);
 
-      if (!useStripePaid && state.accessToken) {
-        const billRes = await fetch('/api/billing-status', {
+      // Only check billing for signed-in users
+      // Guests generate in preview mode — payment gate is on step 4
+      if (state.accessToken) {
+        const billRes = await fetch('/.netlify/functions/billing-status', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -1425,8 +1427,8 @@ Phone: 1-800-555-0100`;
         });
         const bill = await billRes.json().catch(() => ({}));
         if (!billRes.ok || bill.paid !== true) {
-          window.location.href = '/pricing';
-          return;
+          // Signed-in but not paid — let them generate in preview mode
+          // Do not redirect to pricing
         }
       }
       showErr('step3Error', '');
