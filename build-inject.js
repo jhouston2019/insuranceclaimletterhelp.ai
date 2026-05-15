@@ -11,6 +11,7 @@ const skip = new Set([
   'claim-defense.html',
   'signup.html',
   'login.html',
+  'dashboard.html',
 ]);
 for (const item of fs.readdirSync('.')) {
   if (skip.has(item)) continue;
@@ -31,3 +32,8 @@ let loginHtml = fs.readFileSync('login.html', 'utf8');
 loginHtml = loginHtml.replace('SUPABASE_URL_PLACEHOLDER', process.env.VITE_SUPABASE_URL || '');
 loginHtml = loginHtml.replace('SUPABASE_ANON_KEY_PLACEHOLDER', process.env.VITE_SUPABASE_ANON_KEY || '');
 fs.writeFileSync('dist/login.html', loginHtml);
+
+let dashboardHtml = fs.readFileSync('dashboard.html', 'utf8');
+dashboardHtml = dashboardHtml.replace('SUPABASE_URL_PLACEHOLDER', process.env.VITE_SUPABASE_URL || '');
+dashboardHtml = dashboardHtml.replace('SUPABASE_ANON_KEY_PLACEHOLDER', process.env.VITE_SUPABASE_ANON_KEY || '');
+fs.writeFileSync('dist/dashboard.html', dashboardHtml);

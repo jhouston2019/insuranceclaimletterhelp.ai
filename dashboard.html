@@ -1,144 +1,363 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="supabase-url" content="%%SUPABASE_URL%%" />
-    <meta name="supabase-anon-key" content="%%SUPABASE_ANON_KEY%%" />
-    <title>Your Dashboard | Insurance Claim Response Pro</title>
-    <meta name="description" content="Access your Insurance Claim Response Pro dashboard to view your claim letter analyses, response letters, and account information.">
-    <link rel="canonical" href="https://insuranceclaimletterhelp.com/dashboard.html">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="supabase-url" content="SUPABASE_URL_PLACEHOLDER" />
+  <meta name="supabase-anon-key" content="SUPABASE_ANON_KEY_PLACEHOLDER" />
+  <title>Your Letters | Insurance Claim Response Pro</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0f1e35;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+    }
+    .top-bar {
+      background: #0f1e35;
+      padding: 1rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+    .top-bar strong {
+      font-family: Georgia, serif;
+      font-size: 1.15rem;
+    }
+    .top-bar nav a {
+      color: #cbd5e1;
+      text-decoration: none;
+      font-size: 0.9rem;
+      margin-left: 1rem;
+    }
+    .top-bar nav a:hover { color: #fff; }
+    .top-bar .btn-review {
+      background: #0f1e35;
+      color: #fff;
+      border: 2px solid #fff;
+      border-radius: 6px;
+      padding: 0.45rem 1rem;
+      font-size: 0.875rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .shell { max-width: 900px; margin: 0 auto; padding: 2rem 1.25rem; }
+    h1 {
+      font-family: Georgia, serif;
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+    .sub { color: #94a3b8; font-size: 0.9rem; margin-bottom: 2rem; }
+    .letter-card {
+      background: #fff;
+      color: #1f2937;
+      border-radius: 10px;
+      padding: 1.1rem 1.25rem;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .letter-card .meta { flex: 1; min-width: 0; }
+    .letter-card .meta strong {
+      display: block;
+      font-size: 1rem;
+      color: #0f1e35;
+      margin-bottom: 0.2rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .letter-card .meta span {
+      font-size: 0.8rem;
+      color: #6b7280;
+    }
+    .btn-view {
+      background: #0f1e35;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 0.5rem 1.1rem;
+      font-size: 0.875rem;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn-no-letter {
+      background: #e5e7eb;
+      color: #6b7280;
+      border: none;
+      border-radius: 6px;
+      padding: 0.5rem 1.1rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: default;
+      white-space: nowrap;
+    }
+    .empty {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: #94a3b8;
+    }
+    .empty a {
+      color: #60a5fa;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    /* Modal */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 100;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 2rem 1rem;
+      overflow-y: auto;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      background: #fff;
+      color: #1f2937;
+      border-radius: 12px;
+      width: 100%;
+      max-width: 780px;
+      padding: 2rem;
+      position: relative;
+    }
+    .modal-close {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: #e5e7eb;
+      border: none;
+      border-radius: 6px;
+      padding: 0.35rem 0.75rem;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 0.875rem;
+    }
+    .modal h2 {
+      font-family: Georgia, serif;
+      font-size: 1.25rem;
+      margin-bottom: 1.25rem;
+      color: #0f1e35;
+      padding-right: 3rem;
+    }
+    .modal-section {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+    .modal-section h4 {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #6b7280;
+      margin-bottom: 0.5rem;
+    }
+    .modal-section p {
+      font-size: 0.9rem;
+      color: #374151;
+      line-height: 1.55;
+    }
+    .letter-text {
+      font-family: 'Courier New', monospace;
+      font-size: 0.8rem;
+      line-height: 1.55;
+      white-space: pre-wrap;
+      color: #111;
+      max-height: 420px;
+      overflow-y: auto;
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      padding: 1rem;
+    }
+  </style>
 </head>
-<body style="background:#0f172a; color:#ffffff; font-family:'Inter',sans-serif; margin:0; padding:0; line-height:1.5;">
-    <nav style="background:#1e293b; padding:1rem; box-shadow:0 1px 4px rgba(0,0,0,0.1); display:flex; justify-content:space-between; border-bottom: 2px solid #334155;">
-        <div style="color: #f5f5f5;"><strong>Insurance Claim Response Pro</strong></div>
-        <div>
-            <a href="/dashboard" style="color: #f5f5f5; text-decoration: none; margin: 0 10px; padding: 8px 16px; border-radius: 4px;">Dashboard</a> |
-            <a href="/pricing" style="color: #f5f5f5; text-decoration: none; margin: 0 10px; padding: 8px 16px; border-radius: 4px;">Pricing</a> |
-            <a href="/login.html" style="color: #f5f5f5; text-decoration: none; margin: 0 10px; padding: 8px 16px; border-radius: 4px;">Login</a>
-        </div>
+<body>
+  <header class="top-bar">
+    <strong>Insurance Claim Response Pro</strong>
+    <nav>
+      <a href="/claim-defense.html" class="btn-review">Review Another Notice</a>
+      <a href="/dashboard.html">Dashboard</a>
+      <a href="#" id="btnSignOut">Log in</a>
     </nav>
+  </header>
 
-    <div style="width:min(1120px, 92%); margin-inline:auto; padding:2rem 0;">
-        <div style="background:linear-gradient(135deg,#1e3a5f,#0f172a); border:1px solid #334155; border-radius:14px; padding:1.5rem; margin-bottom:1.5rem;">
-            <a href="/upload" style="display:inline-block; background:#22c55e; color:#fff; padding:16px 28px; border-radius:10px; font-weight:700; text-decoration:none; font-size:1.05rem; box-shadow:0 6px 20px rgba(34,197,94,.35);">Start New Estimate Review →</a>
-            <p style="color:#94a3b8; margin:0.75rem 0 0; font-size:0.95rem;">Upload a new insurer letter and run the claim workflow.</p>
-        </div>
-
-        <h1 style="color:#ffffff; font-size:2.5rem; margin-bottom:2rem;">Your Dashboard</h1>
-        
-        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:2rem; margin:2rem 0;">
-            <div style="background:#ffffff; padding:2rem; border-radius:12px; box-shadow:0 4px 6px rgba(0,0,0,0.1); color:#2d3748; border:1px solid #e2e8f0;">
-                <h3 style="color:#2d3748; font-size:1.5rem; margin-bottom:1rem;">Plan &amp; billing</h3>
-                <div id="billingSnapshot">
-                    <p style="color:#4a5568;">Loading…</p>
-                </div>
-                <a href="/pricing" style="display:inline-block; margin-top:1rem; background:#0ea5e9; color:white; padding:12px 22px; border-radius:10px; font-weight:600; text-decoration:none;">Upgrade plan</a>
-            </div>
-
-            <div style="background:#ffffff; padding:2rem; border-radius:12px; box-shadow:0 4px 6px rgba(0,0,0,0.1); color:#2d3748; border:1px solid #e2e8f0;">
-                <h3 style="color:#2d3748; font-size:1.5rem; margin-bottom:1rem;">Recent letters</h3>
-                <div id="recentLetters">
-                    <p style="color:#4a5568;">Loading your letters…</p>
-                </div>
-            </div>
-            
-            <div style="background:#ffffff; padding:2rem; border-radius:12px; box-shadow:0 4px 6px rgba(0,0,0,0.1); color:#2d3748; border:1px solid #e2e8f0;">
-                <h3 style="color:#2d3748; font-size:1.5rem; margin-bottom:1rem;">Quick actions</h3>
-                <div style="display:flex; flex-direction:column; gap:1rem;">
-                    <a href="/upload" style="background:#334155; color:white; padding:14px 28px; border-radius:10px; font-weight:600; text-decoration:none; text-align:center;">New upload</a>
-                    <a href="/claim-defense.html" style="background:#475569; color:white; padding:14px 28px; border-radius:10px; font-weight:600; text-decoration:none; text-align:center;">Open full wizard</a>
-                </div>
-            </div>
-        </div>
+  <div class="shell">
+    <h1>Your letters</h1>
+    <p class="sub">Letters you generate in the wizard appear here.</p>
+    <div id="lettersList">
+      <p style="color:#94a3b8;">Loading…</p>
     </div>
+  </div>
 
-    <script type="module">
-        import { getUserDocuments } from './src/components/UploadForm.js';
-        import { getCurrentUser, getSession } from './src/components/Auth.js';
-        
-        let currentUser = null;
-        
-        document.addEventListener('DOMContentLoaded', async () => {
-            currentUser = await getCurrentUser();
-            
-            if (!currentUser) {
-                alert('Please login to access your dashboard');
-                window.location.href = '/login.html?redirect=' + encodeURIComponent('/dashboard');
-                return;
-            }
-            
-            await loadUserData();
+  <!-- Modal -->
+  <div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal">
+      <button class="modal-close" id="modalClose">Close</button>
+      <h2 id="modalTitle">Letter</h2>
+      <div class="modal-section">
+        <h4>Analysis summary</h4>
+        <p id="modalAnalysis">—</p>
+      </div>
+      <div class="modal-section">
+        <h4>Strategy</h4>
+        <p id="modalStrategy">—</p>
+      </div>
+      <div class="modal-section">
+        <h4>Letter</h4>
+        <div class="letter-text" id="modalLetter"></div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    const urlMeta = document.querySelector('meta[name="supabase-url"]')
+      ?.content?.trim() || '';
+    const keyMeta = document.querySelector('meta[name="supabase-anon-key"]')
+      ?.content?.trim() || '';
+
+    if (!urlMeta || urlMeta.includes('PLACEHOLDER')) {
+      document.getElementById('lettersList').innerHTML =
+        '<p style="color:#f87171;">Configuration error. Please contact support.</p>';
+      throw new Error('Supabase not configured');
+    }
+
+    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+    const supabase = createClient(urlMeta, keyMeta);
+
+    // Auth check
+    const { data: { user }, error: userErr } = await supabase.auth.getUser();
+    if (userErr || !user) {
+      window.location.href = '/login.html?redirect='
+        + encodeURIComponent('/dashboard.html');
+      throw new Error('Not authenticated');
+    }
+
+    // Update nav
+    const btnSignOut = document.getElementById('btnSignOut');
+    btnSignOut.textContent = 'Log out';
+    btnSignOut.addEventListener('click', async (e) => {
+      e.preventDefault();
+      await supabase.auth.signOut();
+      window.location.href = '/login.html';
+    });
+
+    // Get session token for billing
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+
+    // Load letters from claim_jobs
+    const { data: jobs, error: jobsErr } = await supabase
+      .from('claim_jobs')
+      .select('id, created_at, claim_type, payer_name, letter_html, letter_full, selected_strategy, paid, is_unlocked')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+
+    const container = document.getElementById('lettersList');
+
+    if (jobsErr) {
+      container.innerHTML = '<p style="color:#f87171;">Failed to load letters.</p>';
+    } else if (!jobs || jobs.length === 0) {
+      container.innerHTML = `
+        <div class="empty">
+          <p>No letters yet.</p>
+          <p style="margin-top:0.5rem;">
+            <a href="/claim-defense.html">Start your first claim response →</a>
+          </p>
+        </div>`;
+    } else {
+      container.innerHTML = jobs.map(job => {
+        const title = job.payer_name || job.claim_type || 'Claim';
+        const date = new Date(job.created_at).toLocaleDateString('en-US', {
+          month: 'short', day: 'numeric', year: 'numeric',
+          hour: 'numeric', minute: '2-digit'
         });
-        
-        async function loadUserData() {
-            try {
-                const documents = await getUserDocuments(currentUser.id);
-                displayRecentLetters(documents);
-                const session = await getSession();
-                const token = session?.access_token ?? null;
-                if (!token) {
-                    alert('Session expired. Please log in again.');
-                    window.location.href = '/login.html?redirect=' + encodeURIComponent('/dashboard');
-                    return;
-                }
-                await loadBilling(session);
-            } catch (error) {
-                console.error('Failed to load user data:', error);
-                document.getElementById('recentLetters').innerHTML = '<p>Failed to load letters</p>';
+        const hasLetter = !!job.letter_html;
+        const statusLabel = job.paid || job.is_unlocked ? 'Paid' : 'In progress';
+        return `
+          <div class="letter-card">
+            <div class="meta">
+              <strong>${escapeHtml(title)}</strong>
+              <span>${statusLabel} &nbsp;·&nbsp; ${date}</span>
+            </div>
+            ${hasLetter
+              ? `<button class="btn-view" data-id="${job.id}">View letter</button>`
+              : `<button class="btn-no-letter" disabled>Letter not saved yet</button>`
             }
-        }
+          </div>`;
+      }).join('');
 
-        async function loadBilling(session) {
-            const token = session?.access_token ?? '';
-            const res = await fetch('/.netlify/functions/billing-status', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token ? { Authorization: 'Bearer ' + token } : {}),
-                },
-                body: JSON.stringify({}),
-            });
-            const b = await res.json();
-            const used = b.usage?.used ?? 0;
-            const limit = b.usage?.limit ?? 0;
-            const limLabel = limit === -1 ? 'Unlimited' : limit;
-            const renew = b.renewal_date
-                ? new Date(b.renewal_date).toLocaleDateString()
-                : '—';
-            document.getElementById('billingSnapshot').innerHTML = `
-                <p><strong>Plan:</strong> ${escapeHtml(String(b.plan_type || '—'))}</p>
-                <p><strong>Active:</strong> ${b.active ? 'Yes' : 'No'}</p>
-                <p><strong>Paid:</strong> ${b.paid === true ? 'Yes' : 'No'}</p>
-                <p><strong>Renewal / period end:</strong> ${renew}</p>
-                <p><strong>Reviews used:</strong> ${used} of ${limLabel}</p>
-            `;
-        }
+      // Wire view buttons
+      container.querySelectorAll('.btn-view').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const jobId = btn.dataset.id;
+          const job = jobs.find(j => j.id === jobId);
+          if (!job) return;
+          openModal(job);
+        });
+      });
+    }
 
-        function escapeHtml(s) {
-            return s.replace(/[&<>"']/g, (c) => ({
-                '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
-            }[c]));
+    function openModal(job) {
+      const title = job.payer_name || job.claim_type || 'Claim';
+      document.getElementById('modalTitle').textContent = title;
+
+      // Analysis summary
+      let analysisSummary = '—';
+      if (job.letter_full) {
+        try {
+          const parsed = typeof job.letter_full === 'string'
+            ? JSON.parse(job.letter_full)
+            : job.letter_full;
+          analysisSummary = parsed.plainEnglish
+            || parsed.summary
+            || parsed.whatInsuranceIsSaying
+            || JSON.stringify(parsed).slice(0, 300);
+        } catch {
+          analysisSummary = String(job.letter_full).slice(0, 300);
         }
-        
-        function displayRecentLetters(documents) {
-            const container = document.getElementById('recentLetters');
-            
-            if (documents.length === 0) {
-                container.innerHTML = '<p>No letters yet. <a href="/upload">Start your first estimate review →</a></p>';
-                return;
-            }
-            
-            const lettersHtml = documents.slice(0, 5).map(doc => `
-                <div style="border: 1px solid #e1e5e9; padding: 1rem; margin: 0.5rem 0; border-radius: 8px;">
-                    <strong>${escapeHtml(doc.file_name || '')}</strong>
-                    <br>
-                    <small>Uploaded: ${new Date(doc.created_at).toLocaleDateString()}</small>
-                </div>
-            `).join('');
-            
-            container.innerHTML = lettersHtml;
-        }
-    </script>
+      }
+      document.getElementById('modalAnalysis').textContent = analysisSummary;
+
+      // Strategy
+      document.getElementById('modalStrategy').textContent =
+        job.selected_strategy || '—';
+
+      // Letter
+      document.getElementById('modalLetter').textContent =
+        job.letter_html || 'No letter saved.';
+
+      document.getElementById('modalBackdrop').classList.add('open');
+    }
+
+    document.getElementById('modalClose').addEventListener('click', () => {
+      document.getElementById('modalBackdrop').classList.remove('open');
+    });
+    document.getElementById('modalBackdrop').addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) {
+        document.getElementById('modalBackdrop').classList.remove('open');
+      }
+    });
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+      }[c]));
+    }
+  </script>
 </body>
 </html>
