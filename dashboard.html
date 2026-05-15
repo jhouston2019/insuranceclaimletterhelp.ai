@@ -188,15 +188,15 @@
       font-family: Georgia, 'Times New Roman', serif;
       white-space: normal;
     }
-    .modal-letter-head {
+    .modal-export-bar {
       display: flex;
-      align-items: center;
-      justify-content: space-between;
+      justify-content: flex-end;
       flex-wrap: wrap;
       gap: 0.5rem;
-      margin-bottom: 0.65rem;
+      margin-bottom: 1.25rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid #e2e8f0;
     }
-    .modal-letter-head h4 { margin-bottom: 0; }
     .modal-actions {
       display: flex;
       flex-wrap: wrap;
@@ -242,6 +242,13 @@
     <div class="modal">
       <button class="modal-close" id="modalClose">Close</button>
       <h2 id="modalTitle">Letter</h2>
+      <div class="modal-export-bar">
+        <div class="modal-actions">
+          <button type="button" class="btn-export" id="btnCopyLetter" disabled>Copy all</button>
+          <button type="button" class="btn-export" id="btnPdfLetter" disabled>Download PDF</button>
+          <button type="button" class="btn-export" id="btnWordLetter" disabled>Download Word</button>
+        </div>
+      </div>
       <div class="modal-section">
         <h4>Analysis summary</h4>
         <p id="modalAnalysis">—</p>
@@ -251,14 +258,7 @@
         <p id="modalStrategy">—</p>
       </div>
       <div class="modal-section">
-        <div class="modal-letter-head">
-          <h4>Letter</h4>
-          <div class="modal-actions">
-            <button type="button" class="btn-export" id="btnCopyLetter" disabled>Copy</button>
-            <button type="button" class="btn-export" id="btnPdfLetter" disabled>Download PDF</button>
-            <button type="button" class="btn-export" id="btnWordLetter" disabled>Download Word</button>
-          </div>
-        </div>
+        <h4>Letter</h4>
         <div class="letter-text letter-text-plain" id="modalLetter"></div>
       </div>
     </div>
@@ -314,17 +314,90 @@
     }
 
     function setExportButtonLabels() {
-      document.getElementById('btnCopyLetter').textContent = 'Copy';
+      document.getElementById('btnCopyLetter').textContent = 'Copy all';
       document.getElementById('btnPdfLetter').textContent = 'Download PDF';
       document.getElementById('btnWordLetter').textContent = 'Download Word';
     }
 
-    async function downloadLetterPdf(plainText, filenameBase) {
+    /** Analysis text: short preview for modal, full for exports */
+    function analysisSummaryFromJob(job, forExport) {
+      if (!job.letter_full) return '';
+      try {
+        const parsed = typeof job.letter_full === 'string'
+          ? JSON.parse(job.letter_full)
+          : job.letter_full;
+        const picked = parsed.plainEnglish
+          || parsed.summary
+          || parsed.whatInsuranceIsSaying;
+        if (picked) return String(picked);
+        const json = JSON.stringify(parsed, null, forExport ? 2 : undefined);
+        return forExport ? json : json.slice(0, 300);
+      } catch {
+        const s = String(job.letter_full);
+        return forExport ? s : s.slice(0, 300);
+      }
+    }
+
+    function strategyFromJob(job) {
+      const s = job.selected_strategy;
+      return (s != null && String(s).trim()) ? String(s).trim() : '';
+    }
+
+    function letterPlainFromJob(job) {
+      return htmlToPlainText(job.letter_html || '');
+    }
+
+    function jobHasAnyDeliverable(job) {
+      return !!(
+        analysisSummaryFromJob(job, true).trim()
+        || strategyFromJob(job)
+        || letterPlainFromJob(job).trim()
+      );
+    }
+
+    function buildDeliverablePlainText(job) {
+      const analysis = analysisSummaryFromJob(job, true).trim();
+      const strategy = strategyFromJob(job);
+      const letter = letterPlainFromJob(job).trim();
+      const parts = [];
+      parts.push('ANALYSIS SUMMARY');
+      parts.push(analysis || '—');
+      parts.push('');
+      parts.push('STRATEGY');
+      parts.push(strategy || '—');
+      parts.push('');
+      parts.push('LETTER');
+      parts.push(letter || '—');
+      return parts.join('\n');
+    }
+
+    function buildDeliverableWordHtml(job, docTitle) {
+      const analysisRaw = analysisSummaryFromJob(job, true).trim();
+      const strategyRaw = strategyFromJob(job);
+      const letterHtmlRaw = (job.letter_html || '').trim();
+      const analysisHtml = escapeHtml(analysisRaw || '—').replace(/\n/g, '<br/>');
+      const strategyHtml = escapeHtml(strategyRaw || '—').replace(/\n/g, '<br/>');
+      const letterBlock = letterHtmlRaw.includes('<')
+        ? `<div>${letterHtmlRaw}</div>`
+        : `<pre style="white-space:pre-wrap;font-family:Calibri;font-size:11pt;">${escapeHtml(letterPlainFromJob(job) || '—')}</pre>`;
+      const safeTitle = escapeHtml(docTitle || 'Deliverables');
+      return `<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office"><head><meta charset="utf-8"><title>${safeTitle}</title></head><body>
+<div style="font-family:Calibri,sans-serif;font-size:11pt;">
+<h2 style="font-size:14pt;color:#0f1e35;">Analysis summary</h2>
+<p>${analysisHtml}</p>
+<h2 style="font-size:14pt;color:#0f1e35;margin-top:1.25em;">Strategy</h2>
+<p>${strategyHtml}</p>
+<h2 style="font-size:14pt;color:#0f1e35;margin-top:1.25em;">Letter</h2>
+${letterBlock}
+</div></body></html>`;
+    }
+
+    async function downloadDeliverablePdf(plainText, filenameBase) {
       const { jsPDF } = await import('https://esm.sh/jspdf@2.5.2');
       const doc = new jsPDF({ unit: 'pt', format: 'letter' });
       const margin = 48;
       const pageWidth = doc.internal.pageSize.getWidth() - 2 * margin;
-      const text = plainText || '(empty letter)';
+      const text = plainText || '(empty)';
       const lines = doc.splitTextToSize(text, pageWidth);
       let y = margin;
       const lineHeight = 14;
@@ -340,13 +413,8 @@
       doc.save(`${filenameBase}.pdf`);
     }
 
-    function downloadLetterWord(letterHtml, plainText, docTitle, filenameBase) {
-      const inner = letterHtml && letterHtml.trim()
-        ? `<div style="font-family:Calibri, sans-serif; font-size:11pt;">${letterHtml}</div>`
-        : `<pre style="white-space:pre-wrap;font-family:Calibri;font-size:11pt;">${escapeHtml(plainText || '')}</pre>`;
-      const safeTitle = escapeHtml(docTitle || 'Letter');
-      const html = `<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office"><head><meta charset="utf-8"><title>${safeTitle}</title></head><body>${inner}</body></html>`;
-      const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+    function downloadDeliverableWord(htmlDoc, filenameBase) {
+      const blob = new Blob(['\ufeff', htmlDoc], { type: 'application/msword' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = `${filenameBase}.doc`;
@@ -356,13 +424,13 @@
 
     document.getElementById('btnCopyLetter').addEventListener('click', async () => {
       const job = currentModalJob;
-      if (!job?.letter_html) return;
-      const plain = htmlToPlainText(job.letter_html);
+      if (!job || !jobHasAnyDeliverable(job)) return;
+      const plain = buildDeliverablePlainText(job);
       const btn = document.getElementById('btnCopyLetter');
       try {
         await navigator.clipboard.writeText(plain);
         btn.textContent = 'Copied!';
-        setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
+        setTimeout(() => { btn.textContent = 'Copy all'; }, 2000);
       } catch {
         try {
           const ta = document.createElement('textarea');
@@ -374,25 +442,25 @@
           document.execCommand('copy');
           document.body.removeChild(ta);
           btn.textContent = 'Copied!';
-          setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
+          setTimeout(() => { btn.textContent = 'Copy all'; }, 2000);
         } catch {
           btn.textContent = 'Copy failed';
-          setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
+          setTimeout(() => { btn.textContent = 'Copy all'; }, 2000);
         }
       }
     });
 
     document.getElementById('btnPdfLetter').addEventListener('click', async () => {
       const job = currentModalJob;
-      if (!job?.letter_html) return;
+      if (!job || !jobHasAnyDeliverable(job)) return;
       const btn = document.getElementById('btnPdfLetter');
-      const plain = htmlToPlainText(job.letter_html);
+      const plain = buildDeliverablePlainText(job);
       const title = job.payer_name || job.claim_type || 'Claim';
       const base = slugFilename(title);
       btn.disabled = true;
       btn.textContent = 'Building…';
       try {
-        await downloadLetterPdf(plain, base);
+        await downloadDeliverablePdf(plain, base);
       } catch (e) {
         console.warn('PDF export:', e);
         alert('Could not build PDF. Try Copy or Word export.');
@@ -404,11 +472,11 @@
 
     document.getElementById('btnWordLetter').addEventListener('click', () => {
       const job = currentModalJob;
-      if (!job?.letter_html) return;
-      const title = job.payer_name || job.claim_type || 'Letter';
+      if (!job || !jobHasAnyDeliverable(job)) return;
+      const title = job.payer_name || job.claim_type || 'Deliverables';
       const base = slugFilename(title);
-      const plain = htmlToPlainText(job.letter_html);
-      downloadLetterWord(job.letter_html, plain, title, base);
+      const htmlDoc = buildDeliverableWordHtml(job, title);
+      downloadDeliverableWord(htmlDoc, base);
     });
 
     // Load letters from claim_jobs
@@ -437,7 +505,7 @@
           month: 'short', day: 'numeric', year: 'numeric',
           hour: 'numeric', minute: '2-digit'
         });
-        const hasLetter = !!job.letter_html;
+        const hasDeliverables = jobHasAnyDeliverable(job);
         const statusLabel = job.paid || job.is_unlocked ? 'Paid' : 'In progress';
         return `
           <div class="letter-card">
@@ -445,9 +513,9 @@
               <strong>${escapeHtml(title)}</strong>
               <span>${statusLabel} &nbsp;·&nbsp; ${date}</span>
             </div>
-            ${hasLetter
-              ? `<button class="btn-view" data-id="${job.id}">View letter</button>`
-              : `<button class="btn-no-letter" disabled>Letter not saved yet</button>`
+            ${hasDeliverables
+              ? `<button class="btn-view" data-id="${job.id}">View</button>`
+              : `<button class="btn-no-letter" disabled>Nothing saved yet</button>`
             }
           </div>`;
       }).join('');
@@ -470,31 +538,18 @@
       const title = job.payer_name || job.claim_type || 'Claim';
       document.getElementById('modalTitle').textContent = title;
 
-      // Analysis summary
-      let analysisSummary = '—';
-      if (job.letter_full) {
-        try {
-          const parsed = typeof job.letter_full === 'string'
-            ? JSON.parse(job.letter_full)
-            : job.letter_full;
-          analysisSummary = parsed.plainEnglish
-            || parsed.summary
-            || parsed.whatInsuranceIsSaying
-            || JSON.stringify(parsed).slice(0, 300);
-        } catch {
-          analysisSummary = String(job.letter_full).slice(0, 300);
-        }
-      }
-      document.getElementById('modalAnalysis').textContent = analysisSummary;
+      // Analysis summary (modal preview may truncate JSON)
+      const analysisPreview = analysisSummaryFromJob(job, false);
+      document.getElementById('modalAnalysis').textContent =
+        analysisPreview.trim() ? analysisPreview : '—';
 
       // Strategy
       document.getElementById('modalStrategy').textContent =
-        job.selected_strategy || '—';
+        strategyFromJob(job) || '—';
 
       // Letter — HTML when present for readability; plain styling fallback
       const letterEl = document.getElementById('modalLetter');
       const raw = job.letter_html || '';
-      const hasLetter = !!raw.trim();
       letterEl.classList.toggle('letter-text-plain', !raw.includes('<'));
       if (raw.includes('<')) {
         letterEl.innerHTML = raw;
@@ -505,9 +560,10 @@
       const copyBtn = document.getElementById('btnCopyLetter');
       const pdfBtn = document.getElementById('btnPdfLetter');
       const wordBtn = document.getElementById('btnWordLetter');
-      copyBtn.disabled = !hasLetter;
-      pdfBtn.disabled = !hasLetter;
-      wordBtn.disabled = !hasLetter;
+      const canExport = jobHasAnyDeliverable(job);
+      copyBtn.disabled = !canExport;
+      pdfBtn.disabled = !canExport;
+      wordBtn.disabled = !canExport;
 
       document.getElementById('modalBackdrop').classList.add('open');
     }
