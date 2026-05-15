@@ -221,13 +221,28 @@
             return;
           }
 
-          // Account created — Supabase requires email confirmation
-          // before signInWithPassword works. Send to login with session_id.
+          // Email confirmation disabled — sign in immediately after signup
+          const { error: signInErr } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+          });
+
+          if (signInErr) {
+            showError('Account created but sign-in failed: ' + signInErr.message);
+            btnSubmit.disabled = false;
+            btnSubmit.textContent = 'Create account';
+            return;
+          }
+
           successMsg.classList.add('show');
+
+          const redirectTo = sessionId
+            ? '/claim-defense.html?session_id=' + sessionId
+            : '/dashboard.html';
+
           setTimeout(() => {
-            window.location.href = '/login.html'
-              + (sessionId ? '?session_id=' + sessionId : '');
-          }, 1200);
+            window.location.href = redirectTo;
+          }, 800);
 
         } catch (err) {
           showError('Something went wrong. Please try again.');
