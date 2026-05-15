@@ -825,7 +825,7 @@ Phone: 1-800-555-0100`;
 
     document.getElementById('btnCreateAccount')?.addEventListener('click', () => {
       const sid = state.stripeSessionId || '';
-      window.location.href = '/register.html' + (sid ? '?session_id=' + encodeURIComponent(sid) : '');
+      window.location.href = '/signup.html' + (sid ? '?session_id=' + sid : '');
     });
 
     document.getElementById('btnReviewAnother')?.addEventListener('click', () => {

@@ -23,11 +23,16 @@
     </div>
     <script type="module">
         import { signInWithMagicLink } from './src/components/Auth.js';
+        const params = new URLSearchParams(window.location.search);
+        const sessionId = params.get('session_id');
+
         document.getElementById('signupForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const email = document.getElementById('email').value.trim();
-            const redirect = new URL(`${window.location.origin}/app`);
-            const { error } = await signInWithMagicLink(email, redirect.toString());
+            const redirectTo = sessionId
+                ? `${window.location.origin}/claim-defense.html?session_id=${sessionId}`
+                : `${window.location.origin}/app`;
+            const { error } = await signInWithMagicLink(email, redirectTo);
             if (error) { alert(error.message); return; }
             document.getElementById('sent').style.display = 'block';
         });
