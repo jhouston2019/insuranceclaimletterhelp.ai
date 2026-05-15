@@ -1,41 +1,257 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create account | Insurance Claim Response Pro</title>
-    <link rel="canonical" href="https://insuranceclaimletterhelp.com/signup.html">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="supabase-url" content="%%SUPABASE_URL%%" />
+  <meta name="supabase-anon-key" content="%%SUPABASE_ANON_KEY%%" />
+  <title>Create account | Insurance Claim Response Pro</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0f1e35;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    nav {
+      background: #0f1e35;
+      padding: 1rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    nav strong { font-family: Georgia, serif; font-size: 1.15rem; }
+    nav a { color: #cbd5e1; text-decoration: none; font-size: 0.9rem; }
+    nav a:hover { color: #fff; }
+    .shell {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem;
+    }
+    .card {
+      background: #fff;
+      color: #1f2937;
+      border-radius: 12px;
+      padding: 2rem;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+    }
+    h2 {
+      font-family: Georgia, serif;
+      font-size: 1.5rem;
+      margin-bottom: 0.35rem;
+      color: #0f1e35;
+      text-align: center;
+    }
+    .sub {
+      text-align: center;
+      color: #6b7280;
+      font-size: 0.9rem;
+      margin-bottom: 1.5rem;
+      line-height: 1.5;
+    }
+    label {
+      display: block;
+      font-weight: 600;
+      font-size: 0.875rem;
+      margin-bottom: 0.35rem;
+      color: #374151;
+    }
+    input {
+      width: 100%;
+      padding: 0.65rem 0.75rem;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 1rem;
+      font-family: inherit;
+      margin-bottom: 1rem;
+      color: #1f2937;
+    }
+    input:focus {
+      outline: none;
+      border-color: #0f1e35;
+      box-shadow: 0 0 0 2px rgba(15,30,53,0.12);
+    }
+    .btn {
+      width: 100%;
+      padding: 0.8rem;
+      background: #0f1e35;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      margin-top: 0.25rem;
+    }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .error {
+      color: #b91c1c;
+      font-size: 0.875rem;
+      margin-bottom: 0.75rem;
+      display: none;
+    }
+    .error.show { display: block; }
+    .success {
+      color: #15803d;
+      font-size: 0.9rem;
+      text-align: center;
+      margin-top: 1rem;
+      display: none;
+    }
+    .success.show { display: block; }
+    .signin-link {
+      text-align: center;
+      margin-top: 1.25rem;
+      font-size: 0.875rem;
+      color: #6b7280;
+    }
+    .signin-link a { color: #0f1e35; font-weight: 600; }
+  </style>
 </head>
-<body style="background:#0f172a; color:#ffffff; font-family:'Inter',sans-serif; margin:0; padding:0; line-height:1.5;">
-    <nav style="background:#1e293b; padding:1rem;">
-        <strong style="color:#f5f5f5;">Insurance Claim Response Pro</strong>
-        <a href="/login.html" style="color:#93c5fd; margin-left:1rem;">Sign in</a>
-    </nav>
-    <div style="max-width:500px; margin:2rem auto; padding:2rem; background:#ffffff; border-radius:12px; color:#2d3748;">
-        <h2 style="text-align:center;">Create account</h2>
-        <p style="text-align:center; color:#64748b; font-size:0.95rem;">We’ll email you a magic link — no password.</p>
-        <form id="signupForm">
-            <label for="email" style="display:block; font-weight:600; margin-bottom:0.5rem;">Email</label>
-            <input type="email" id="email" required style="width:100%; padding:12px; border-radius:8px; border:1px solid #cbd5e1; margin-bottom:1rem; box-sizing:border-box;">
-            <button type="submit" style="width:100%; padding:14px; background:#334155; color:#fff; border:none; border-radius:10px; font-weight:600; cursor:pointer;">Send magic link</button>
-        </form>
-        <p id="sent" style="display:none; color:#15803d; text-align:center; margin-top:1rem;">Check your email.</p>
+<body>
+  <nav>
+    <strong>Insurance Claim Response Pro</strong>
+    <a href="/login.html">Sign in</a>
+  </nav>
+  <div class="shell">
+    <div class="card">
+      <h2>Create your account</h2>
+      <p class="sub">
+        Payment confirmed — choose a password to create your secure
+        workspace. You'll return to the wizard with everything unlocked.
+      </p>
+      <p id="errorMsg" class="error"></p>
+      <form id="signupForm">
+        <label for="email">Email</label>
+        <input type="email" id="email" required autocomplete="email"
+          placeholder="you@example.com" />
+        <label for="password">Password</label>
+        <input type="password" id="password" required
+          autocomplete="new-password" placeholder="At least 8 characters"
+          minlength="8" />
+        <label for="confirmPassword">Confirm password</label>
+        <input type="password" id="confirmPassword" required
+          autocomplete="new-password" placeholder="Repeat password" />
+        <button type="submit" class="btn" id="btnSubmit">
+          Create account
+        </button>
+      </form>
+      <p id="successMsg" class="success">
+        Account created! Signing you in…
+      </p>
+      <div class="signin-link">
+        Already have an account? <a href="/login.html">Sign in</a>
+      </div>
     </div>
-    <script type="module">
-        import { signInWithMagicLink } from './src/components/Auth.js';
-        const params = new URLSearchParams(window.location.search);
-        const sessionId = params.get('session_id');
+  </div>
 
-        document.getElementById('signupForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('email').value.trim();
-            const redirectTo = sessionId
-                ? `${window.location.origin}/claim-defense.html?session_id=${sessionId}`
-                : `${window.location.origin}/app`;
-            const { error } = await signInWithMagicLink(email, redirectTo);
-            if (error) { alert(error.message); return; }
-            document.getElementById('sent').style.display = 'block';
-        });
-    </script>
+  <script type="module">
+    const urlMeta = document.querySelector('meta[name="supabase-url"]')
+      ?.content?.trim() || '';
+    const keyMeta = document.querySelector('meta[name="supabase-anon-key"]')
+      ?.content?.trim() || '';
+
+    const params = new URLSearchParams(window.location.search);
+    const sessionId = params.get('session_id');
+
+    // Pre-fill email from query string if present
+    const emailParam = params.get('email');
+    if (emailParam) {
+      document.getElementById('email').value = emailParam;
+    }
+
+    const errorMsg = document.getElementById('errorMsg');
+    const successMsg = document.getElementById('successMsg');
+    const btnSubmit = document.getElementById('btnSubmit');
+
+    function showError(msg) {
+      errorMsg.textContent = msg;
+      errorMsg.classList.add('show');
+    }
+
+    function clearError() {
+      errorMsg.textContent = '';
+      errorMsg.classList.remove('show');
+    }
+
+    document.getElementById('signupForm')
+      .addEventListener('submit', async (e) => {
+        e.preventDefault();
+        clearError();
+
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+        const confirm = document.getElementById('confirmPassword').value;
+
+        if (password !== confirm) {
+          showError('Passwords do not match.');
+          return;
+        }
+        if (password.length < 8) {
+          showError('Password must be at least 8 characters.');
+          return;
+        }
+
+        btnSubmit.disabled = true;
+        btnSubmit.textContent = 'Creating account…';
+
+        try {
+          const { createClient } = await import(
+            'https://esm.sh/@supabase/supabase-js@2'
+          );
+          const supabase = createClient(urlMeta, keyMeta);
+
+          const { data, error } = await supabase.auth.signUp({
+            email,
+            password,
+          });
+
+          if (error) {
+            showError(error.message);
+            btnSubmit.disabled = false;
+            btnSubmit.textContent = 'Create account';
+            return;
+          }
+
+          successMsg.classList.add('show');
+
+          // Sign in immediately after signup
+          const { data: signInData, error: signInErr } =
+            await supabase.auth.signInWithPassword({ email, password });
+
+          if (signInErr) {
+            // Signup succeeded but auto sign-in failed
+            // Send to login
+            setTimeout(() => {
+              window.location.href = '/login.html'
+                + (sessionId ? '?session_id=' + sessionId : '');
+            }, 1500);
+            return;
+          }
+
+          // Redirect back to wizard with session restored
+          const redirectTo = sessionId
+            ? '/claim-defense.html?session_id=' + sessionId
+            : '/dashboard.html';
+
+          setTimeout(() => {
+            window.location.href = redirectTo;
+          }, 800);
+
+        } catch (err) {
+          showError('Something went wrong. Please try again.');
+          btnSubmit.disabled = false;
+          btnSubmit.textContent = 'Create account';
+        }
+      });
+  </script>
 </body>
 </html>
