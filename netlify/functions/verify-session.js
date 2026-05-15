@@ -66,7 +66,7 @@ exports.handler = async (event) => {
     const admin = getSupabaseAdmin();
     const { data: row, error } = await admin
       .from("wizard_checkout_sessions")
-      .select("id, state")
+      .select("id, state, job_id")
       .eq("stripe_session_id", sessionId)
       .maybeSingle();
 
@@ -79,13 +79,55 @@ exports.handler = async (event) => {
       };
     }
 
+    const jobId = row.job_id;
+    if (jobId) {
+      const updatePayload = {
+        paid: true,
+        is_unlocked: true,
+        stripe_session_id: sessionId,
+        updated_at: new Date().toISOString(),
+      };
+
+      const ws = row.state || {};
+      if (ws.letterRaw) updatePayload.letter_html = ws.letterRaw;
+      if (ws.analysis) {
+        updatePayload.letter_full = typeof ws.analysis === "string"
+          ? ws.analysis
+          : JSON.stringify(ws.analysis);
+      }
+      if (ws.strategy) updatePayload.selected_strategy = ws.strategy;
+
+      const { error: updateErr } = await admin
+        .from("claim_jobs")
+        .update(updatePayload)
+        .eq("id", jobId);
+
+      if (updateErr) {
+        console.error("verify-session: claim_jobs update failed", updateErr.message);
+      }
+    }
+
+    let customerEmail = null;
+    try {
+      customerEmail = stripeSession.customer_details?.email
+        || stripeSession.customer_email
+        || null;
+    } catch (_) {}
+
+    if (customerEmail && jobId) {
+      await admin
+        .from("claim_jobs")
+        .update({ customer_email: customerEmail })
+        .eq("id", jobId);
+    }
+
     return {
       statusCode: 200,
       headers: { ...corsOk, "Content-Type": "application/json" },
       body: JSON.stringify({
         paid: true,
         wizardState: row.state ?? {},
-        jobId: row.id,
+        jobId: jobId,
       }),
     };
   } catch (e) {

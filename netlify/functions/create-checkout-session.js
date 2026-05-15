@@ -112,11 +112,65 @@ exports.handler = async (event) => {
 
     if (wizardState != null && typeof wizardState === "object") {
       const admin = getSupabaseAdmin();
+
+      // Insert claim_jobs row to persist the letter
+      const claimJobPayload = {
+        stripe_checkout_session_id: session.id,
+        paid: false,
+        is_unlocked: false,
+      };
+      if (userId) claimJobPayload.user_id = userId;
+      if (userEmail) claimJobPayload.customer_email = userEmail;
+
+      // Extract letter fields from wizardState
+      if (wizardState.letterRaw) {
+        claimJobPayload.letter_html = wizardState.letterRaw;
+      }
+      if (wizardState.analysis) {
+        claimJobPayload.letter_full = typeof wizardState.analysis === "string"
+          ? wizardState.analysis
+          : JSON.stringify(wizardState.analysis);
+        claimJobPayload.preview_text = wizardState.analysis.plainEnglish
+          || wizardState.analysis.summary
+          || "";
+      }
+      if (wizardState.strategy) {
+        claimJobPayload.selected_strategy = wizardState.strategy;
+      }
+      if (wizardState.claimType) {
+        claimJobPayload.claim_type = wizardState.claimType;
+      }
+      if (wizardState.policyNumber) {
+        claimJobPayload.policy_number = wizardState.policyNumber;
+      }
+      if (wizardState.claimNumber) {
+        claimJobPayload.claim_number = wizardState.claimNumber;
+      }
+      if (wizardState.payerName || wizardState.adjusterName) {
+        claimJobPayload.payer_name = wizardState.payerName
+          || wizardState.adjusterName || "";
+      }
+
+      const { data: jobRow, error: jobErr } = await admin
+        .from("claim_jobs")
+        .insert(claimJobPayload)
+        .select("id")
+        .single();
+
+      if (jobErr) {
+        console.error("claim_jobs insert:", jobErr);
+        // Non-fatal — continue with checkout
+      }
+
+      const jobId = jobRow?.id ?? null;
+
+      // Insert wizard_checkout_sessions with job_id reference
       const { error: insErr } = await admin
         .from("wizard_checkout_sessions")
         .insert({
           stripe_session_id: session.id,
           state: wizardState,
+          job_id: jobId,
         });
       if (insErr) {
         console.error("wizard_checkout_sessions insert:", insErr);

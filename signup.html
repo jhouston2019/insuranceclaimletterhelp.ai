@@ -234,11 +234,30 @@
             return;
           }
 
+          // Link the purchase to the new account
+          if (sessionId) {
+            try {
+              const { data: { session: newSession } } =
+                await supabase.auth.getSession();
+              const token = newSession?.access_token;
+              if (token) {
+                await fetch('/.netlify/functions/record-purchase', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token,
+                  },
+                  body: JSON.stringify({ stripe_session_id: sessionId }),
+                });
+              }
+            } catch (e) {
+              console.warn('record-purchase after signup:', e);
+            }
+          }
+
           successMsg.classList.add('show');
 
-          const redirectTo = sessionId
-            ? '/claim-defense.html?session_id=' + sessionId
-            : '/dashboard.html';
+          const redirectTo = '/dashboard.html';
 
           setTimeout(() => {
             window.location.href = redirectTo;

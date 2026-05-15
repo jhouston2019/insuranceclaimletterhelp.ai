@@ -716,6 +716,18 @@ Phone: 1-800-555-0100`;
 
         try { sessionStorage.setItem('stripeSessionId', sessionId); } catch (_) {}
 
+        // Fire-and-forget: link job to user if already signed in
+        if (state.accessToken && sessionId) {
+          fetch('/.netlify/functions/record-purchase', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + state.accessToken,
+            },
+            body: JSON.stringify({ stripe_session_id: sessionId }),
+          }).catch((e) => console.warn('record-purchase fire-and-forget:', e));
+        }
+
         if (state.analysis) renderStep2();
 
         let targetStep = typeof ws.step === 'number' && ws.step >= 1 && ws.step <= 4
