@@ -243,12 +243,6 @@
   </nav>
 
   <div class="wrap">
-    <p id="wizardPreviewBanner" style="font-size:0.875rem;color:#6b7280;margin:0 0 0.75rem;">
-      Walk all four steps in a free preview. On Analysis, the lower
-      half of that screen is blurred until checkout; on Letter, the
-      bottom 60% of the letter text is blurred. Strategy stays clear.
-      Use step 4 to unlock the full deliverable.
-    </p>
     <div class="progress" id="progressBar">
       <div class="p active" data-s="1">1. Input</div>
       <div class="p" data-s="2">2. Analysis</div>
@@ -332,10 +326,6 @@
         <button type="button" class="btn btn-primary" id="btnAnalyze" disabled>Analyze My Claim</button>
       </div>
       <div id="step1Error" class="error-inline"></div>
-      <p class="muted" style="margin-top:16px;">
-        This tool generates draft correspondence for informational purposes only. It does not constitute legal advice and does not create an attorney-client relationship.
-        For complex matters or claims exceeding $25,000, consult a licensed public adjuster or attorney.
-      </p>
     </div>
 
     <!-- Step 2 -->
@@ -616,7 +606,6 @@ Phone: 1-800-555-0100`;
         noteEl.style.display = 'block';
       }
       updateProgressNav();
-      syncWizardPreviewBanner();
       applyWizardBlur();
     }
 
@@ -757,7 +746,6 @@ Phone: 1-800-555-0100`;
         }
 
         setStep(targetStep);
-        syncWizardPreviewBanner();
         applyWizardBlur();
         syncAnalyzeBtn();
         updateProgressNav();
@@ -775,12 +763,6 @@ Phone: 1-800-555-0100`;
         console.error('restoreWizardState error:', e);
         return false;
       }
-    }
-
-    function syncWizardPreviewBanner() {
-      const el = document.getElementById('wizardPreviewBanner');
-      if (!el) return;
-      el.style.display = state.previewMode === true ? '' : 'none';
     }
 
     function applyWizardBlur() {
@@ -872,7 +854,7 @@ Phone: 1-800-555-0100`;
         const ok = await restoreWizardState(sessionIdUrl);
         if (ok) {
           document.getElementById('authBanner').style.display = 'none';
-          syncWizardPreviewBanner(); applyWizardBlur();
+          applyWizardBlur();
           return;
         }
         try {
@@ -892,7 +874,7 @@ Phone: 1-800-555-0100`;
         state.accessToken = null;
         if (!state.jobPaid) state.previewMode = true;
         document.getElementById('authBanner').style.display = 'none';
-        syncWizardPreviewBanner(); applyWizardBlur();
+        applyWizardBlur();
         return;
       }
 
@@ -901,7 +883,7 @@ Phone: 1-800-555-0100`;
         state.accessToken = null;
         if (!state.jobPaid) state.previewMode = true;
         document.getElementById('authBanner').style.display = 'none';
-        syncWizardPreviewBanner(); applyWizardBlur();
+        applyWizardBlur();
         return;
       }
 
@@ -924,7 +906,7 @@ Phone: 1-800-555-0100`;
       }
 
       document.getElementById('authBanner').style.display = 'none';
-      syncWizardPreviewBanner(); applyWizardBlur();
+      applyWizardBlur();
     }
 
     function syncAnalyzeBtn() {
@@ -1652,13 +1634,13 @@ Phone: 1-800-555-0100`;
       document.getElementById('btnGenerate').disabled = true;
       if (!state.accessToken) state.previewMode = true;
       setStep(1);
-      syncWizardPreviewBanner(); applyWizardBlur();
+      applyWizardBlur();
     });
 
     await boot();
     syncAnalyzeBtn();
     updateProgressNav();
-    syncWizardPreviewBanner(); applyWizardBlur();
+    applyWizardBlur();
   </script>
 </body>
 </html>
