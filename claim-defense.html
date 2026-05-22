@@ -228,7 +228,7 @@
       <a href="/">Home</a>
       <a href="/pricing.html">Pricing</a>
       <a href="/login.html">Sign in</a>
-      <a href="/pricing">Purchase access</a>
+      <a href="/claim-defense.html" data-wizard-purchase>Purchase access</a>
     </div>
   </nav>
 
@@ -751,9 +751,9 @@ Phone: 1-800-555-0100`;
         html += '<a href="/dashboard">Dashboard</a>';
       } else {
         html += '<a href="/login.html">Sign in</a>';
-      }
-      if (locked) {
-        html += '<a href="/pricing">Purchase access</a>';
+        if (locked) {
+          html += '<a href="/claim-defense.html" data-wizard-purchase>Purchase access</a>';
+        }
       }
       container.innerHTML = html;
     }
@@ -771,6 +771,29 @@ Phone: 1-800-555-0100`;
       if (up) up.classList.toggle('show', locked && state.step === 4);
       updateTopNav();
     }
+
+    function handlePurchaseAccessNav(e) {
+      const link = e.target.closest('a[data-wizard-purchase]');
+      if (!link) return;
+      e.preventDefault();
+      if (state.step === 4 && state.previewMode) {
+        scrollUnlockPanelIntoView();
+        return;
+      }
+      const stepAction = {
+        1: 'btnAnalyze',
+        2: 'btnToStrategy',
+        3: 'btnGenerate',
+      };
+      const targetId = stepAction[state.step];
+      if (targetId) {
+        document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }
+
+    document.getElementById('topNavLinks')?.addEventListener('click', handlePurchaseAccessNav);
 
     function scrollUnlockPanelIntoView() {
       const up = document.getElementById('unlockPanel');
