@@ -120,16 +120,6 @@
       min-height: 320px;
     }
     #letterBody .ph { background: #fef3c7; padding: 0 2px; }
-    #letterAttorneyNote {
-      margin-top: 12px;
-      padding: 14px 16px;
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 8px;
-      font-size: 0.85rem;
-      line-height: 1.55;
-      color: #475569;
-    }
     .critical-msg { font-size: 0.75rem; margin-top: 6px; color: #fecaca; max-width: 220px; }
     .step2-body { padding: 20px; }
 
@@ -234,7 +224,7 @@
 <body>
   <nav class="topnav">
     <div class="brand">Insurance Claim Defense</div>
-    <div>
+    <div id="topNavLinks">
       <a href="/">Home</a>
       <a href="/pricing.html">Pricing</a>
       <a href="/login.html">Sign in</a>
@@ -364,11 +354,7 @@
         </div>
       </div>
       <div class="step2-body" style="padding-top:0;">
-        <p class="muted" style="margin-top:20px;">
-          This tool does not constitute legal advice.
-          Review all deadlines and rights carefully.
-        </p>
-        <div class="btn-row" style="margin-top:12px;">
+        <div class="btn-row wizard-hide-in-preview" style="margin-top:20px;">
           <button type="button" id="btnDownloadAnalysisPdf" class="btn btn-secondary">Download Analysis PDF</button>
           <button type="button" id="btnDownloadAnalysisWord" class="btn btn-secondary">Download Analysis Word</button>
         </div>
@@ -409,8 +395,6 @@
       <div id="step4BlurWrap" class="wizard-preview-mask letter-bottom-60">
         <div id="letterBody" contenteditable="false"></div>
       </div>
-
-      <div id="letterAttorneyNote" style="display:none;" aria-live="polite"></div>
 
       <h3 class="section-title" style="margin-top:1.25rem;">Fill placeholders</h3>
       <p class="muted">Complete your details. [DATE] defaults to today.</p>
@@ -478,12 +462,6 @@
       </div>
 
       <div id="step4Error" class="error-inline"></div>
-      <div class="amber" style="margin-top:16px;">
-        This letter is a starting point. For complex denials, bad faith situations, or claims exceeding $25,000, consider having a licensed public adjuster or insurance attorney review before sending.
-      </div>
-      <p class="muted" style="margin-top:12px;">
-        This tool does not constitute legal advice and does not create an attorney-client relationship.
-      </p>
     </div>
   </div>
 
@@ -600,11 +578,6 @@ Phone: 1-800-555-0100`;
       document.querySelectorAll('.progress .p').forEach(p => {
         p.classList.toggle('active', Number(p.dataset.s) === n);
       });
-      if (n === 4) {
-        const noteEl = document.getElementById('letterAttorneyNote');
-        noteEl.textContent = 'This letter is a starting point. For complex denials, bad faith situations, or claims exceeding $25,000, consider having a licensed public adjuster or insurance attorney review before sending.';
-        noteEl.style.display = 'block';
-      }
       updateProgressNav();
       applyWizardBlur();
     }
@@ -765,6 +738,22 @@ Phone: 1-800-555-0100`;
       }
     }
 
+    function updateTopNav() {
+      const container = document.getElementById('topNavLinks');
+      if (!container) return;
+      const paid = state.previewMode !== true;
+      const signedIn = !!state.accessToken;
+      let html = '<a href="/">Home</a><a href="/pricing.html">Pricing</a>';
+      if (paid) {
+        const dashHref = signedIn ? '/dashboard' : '/login.html?redirect=/dashboard';
+        html += '<a href="' + dashHref + '">Dashboard</a>';
+      } else {
+        html += '<a href="/login.html">Sign in</a>';
+        html += '<a href="/pricing">Purchase access</a>';
+      }
+      container.innerHTML = html;
+    }
+
     function applyWizardBlur() {
       const locked = state.previewMode === true;
       document.body.classList.toggle('audit-wizard-preview', locked);
@@ -776,6 +765,7 @@ Phone: 1-800-555-0100`;
       if (te) te.style.display = locked ? 'none' : '';
       const up = document.getElementById('unlockPanel');
       if (up) up.classList.toggle('show', locked && state.step === 4);
+      updateTopNav();
     }
 
     function scrollUnlockPanelIntoView() {
@@ -853,6 +843,8 @@ Phone: 1-800-555-0100`;
       if (sessionIdUrl) {
         const ok = await restoreWizardState(sessionIdUrl);
         if (ok) {
+          const { data: { session } } = await wizardSupabase.auth.getSession();
+          if (session?.access_token) state.accessToken = session.access_token;
           document.getElementById('authBanner').style.display = 'none';
           applyWizardBlur();
           return;
@@ -1315,6 +1307,7 @@ Phone: 1-800-555-0100`;
     }
 
     document.getElementById('btnDownloadAnalysisPdf').addEventListener('click', async () => {
+      if (state.previewMode === true) return;
       const text = buildAnalysisText();
       if (!text) return;
       const a = state.analysis;
@@ -1342,6 +1335,7 @@ Phone: 1-800-555-0100`;
     });
 
     document.getElementById('btnDownloadAnalysisWord').addEventListener('click', async () => {
+      if (state.previewMode === true) return;
       const text = buildAnalysisText();
       if (!text) return;
       const a = state.analysis;
