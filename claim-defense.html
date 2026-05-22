@@ -454,11 +454,10 @@
           <p>Create a free account to access your letter from any device.</p>
           <button type="button" class="btn btn-primary" id="btnCreateAccount">Create Free Account</button>
         </div>
-        <button type="button" class="btn btn-secondary" id="btnReviewAnother" style="margin-top:1rem;">Review Another Notice</button>
       </div>
 
       <div class="btn-row" style="margin-top:16px;">
-        <button type="button" class="btn btn-secondary" id="btnStartOver">Start over</button>
+        <button type="button" class="btn btn-secondary" id="btnReviewAnother">Review Another Notice</button>
       </div>
 
       <div id="step4Error" class="error-inline"></div>
@@ -672,9 +671,9 @@ Phone: 1-800-555-0100`;
         if (ws.strategy !== undefined && ws.strategy !== null) state.strategy = ws.strategy;
         if (ws.letterRaw !== undefined && ws.letterRaw !== null) state.letterRaw = ws.letterRaw;
 
-        state.previewMode = false;
         state.jobPaid = true;
         state.stripeSessionId = sessionId;
+        syncPreviewMode();
 
         try { sessionStorage.setItem('stripeSessionId', sessionId); } catch (_) {}
 
@@ -738,17 +737,22 @@ Phone: 1-800-555-0100`;
       }
     }
 
+    function syncPreviewMode() {
+      state.previewMode = !state.jobPaid;
+    }
+
     function updateTopNav() {
       const container = document.getElementById('topNavLinks');
       if (!container) return;
-      const paid = state.previewMode !== true;
+      const locked = state.previewMode === true;
       const signedIn = !!state.accessToken;
       let html = '<a href="/">Home</a><a href="/pricing.html">Pricing</a>';
-      if (paid) {
-        const dashHref = signedIn ? '/dashboard' : '/login.html?redirect=/dashboard';
-        html += '<a href="' + dashHref + '">Dashboard</a>';
+      if (signedIn) {
+        html += '<a href="/dashboard">Dashboard</a>';
       } else {
         html += '<a href="/login.html">Sign in</a>';
+      }
+      if (locked) {
         html += '<a href="/pricing">Purchase access</a>';
       }
       container.innerHTML = html;
@@ -807,14 +811,43 @@ Phone: 1-800-555-0100`;
 
     document.getElementById('unlockCheckoutBtn')?.addEventListener('click', handleUnlock);
 
+    function startNewLetter() {
+      if (!confirm('Start reviewing a new notice? Your current letter stays saved if you have an account. Each new letter requires its own unlock.')) return;
+      Object.assign(state, {
+        fileBase64: null, fileType: null, analysis: null,
+        strategy: null, letterRaw: '', editing: false, prefillApplied: false,
+        stripeSessionId: null,
+        jobPaid: false,
+      });
+      try { sessionStorage.removeItem('stripeSessionId'); } catch (_) {}
+      document.querySelectorAll('input,textarea,select').forEach(el => {
+        if (el.id === 'fillDate') return;
+        if (el.type === 'button' || el.type === 'file') return;
+        el.value = '';
+      });
+      document.getElementById('claimText').value = '';
+      document.getElementById('fileNameDisplay').textContent = '';
+      document.getElementById('letterBody').innerHTML = '';
+      const pup = document.getElementById('postUnlockPanel');
+      if (pup) pup.style.display = 'none';
+      const uerr = document.getElementById('unlockCheckoutErr');
+      if (uerr) uerr.textContent = '';
+      showErr('step1Error', '');
+      showErr('step3Error', '');
+      showErr('step4Error', '');
+      document.getElementById('btnAnalyze').disabled = true;
+      document.getElementById('btnGenerate').disabled = true;
+      syncPreviewMode();
+      setStep(1);
+      applyWizardBlur();
+    }
+
     document.getElementById('btnCreateAccount')?.addEventListener('click', () => {
       const sid = state.stripeSessionId || '';
       window.location.href = '/signup.html' + (sid ? '?session_id=' + sid : '');
     });
 
-    document.getElementById('btnReviewAnother')?.addEventListener('click', () => {
-      document.getElementById('btnStartOver')?.click();
-    });
+    document.getElementById('btnReviewAnother')?.addEventListener('click', startNewLetter);
 
     async function boot() {
       const SUPABASE_URL = document.querySelector('meta[name="supabase-url"]')?.content?.trim() || '';
@@ -834,11 +867,26 @@ Phone: 1-800-555-0100`;
       const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
       wizardSupabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-      let storedSid = null;
-      try { storedSid = sessionStorage.getItem('stripeSessionId'); } catch (_) {}
-      if (storedSid) state.stripeSessionId = storedSid;
-
       const urlParams = new URLSearchParams(window.location.search);
+      const isNewLetter = urlParams.get('new') === '1';
+      if (isNewLetter) {
+        try { sessionStorage.removeItem('stripeSessionId'); } catch (_) {}
+        state.stripeSessionId = null;
+        state.jobPaid = false;
+        syncPreviewMode();
+        try {
+          const u = new URL(window.location.href);
+          u.searchParams.delete('new');
+          history.replaceState({}, '', u.toString());
+        } catch (_) {}
+      }
+
+      let storedSid = null;
+      if (!isNewLetter) {
+        try { storedSid = sessionStorage.getItem('stripeSessionId'); } catch (_) {}
+        if (storedSid) state.stripeSessionId = storedSid;
+      }
+
       const sessionIdUrl = urlParams.get('session_id');
       if (sessionIdUrl) {
         const ok = await restoreWizardState(sessionIdUrl);
@@ -864,7 +912,7 @@ Phone: 1-800-555-0100`;
 
       if (!user) {
         state.accessToken = null;
-        if (!state.jobPaid) state.previewMode = true;
+        syncPreviewMode();
         document.getElementById('authBanner').style.display = 'none';
         applyWizardBlur();
         return;
@@ -873,29 +921,14 @@ Phone: 1-800-555-0100`;
       const { data: { session }, error: sessErr } = await wizardSupabase.auth.getSession();
       if (sessErr || !session?.access_token) {
         state.accessToken = null;
-        if (!state.jobPaid) state.previewMode = true;
+        syncPreviewMode();
         document.getElementById('authBanner').style.display = 'none';
         applyWizardBlur();
         return;
       }
 
       state.accessToken = session.access_token;
-
-      try {
-        const billRes = await fetch('/.netlify/functions/billing-status', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: 'Bearer ' + session.access_token,
-          },
-          body: JSON.stringify({}),
-        });
-        const bill = await billRes.json().catch(() => ({}));
-        const billPaid = billRes.ok && bill.paid === true;
-        state.previewMode = !billPaid && !state.jobPaid;
-      } catch (_) {
-        if (!state.jobPaid) state.previewMode = true;
-      }
+      syncPreviewMode();
 
       document.getElementById('authBanner').style.display = 'none';
       applyWizardBlur();
@@ -1598,37 +1631,6 @@ Phone: 1-800-555-0100`;
       } catch (e) {
         showErr('step4Error', 'DOCX error.');
       }
-    });
-
-    document.getElementById('btnStartOver').addEventListener('click', () => {
-      if (!confirm('Clear all data and return to step 1?')) return;
-      Object.assign(state, {
-        fileBase64: null, fileType: null, analysis: null,
-        strategy: null, letterRaw: '', editing: false, prefillApplied: false,
-        stripeSessionId: null,
-        jobPaid: false,
-      });
-      try { sessionStorage.removeItem('stripeSessionId'); } catch (_) {}
-      document.querySelectorAll('input,textarea,select').forEach(el => {
-        if (el.id === 'fillDate') return;
-        if (el.type === 'button' || el.type === 'file') return;
-        el.value = '';
-      });
-      document.getElementById('claimText').value = '';
-      document.getElementById('fileNameDisplay').textContent = '';
-      document.getElementById('letterBody').innerHTML = '';
-      const pup = document.getElementById('postUnlockPanel');
-      if (pup) pup.style.display = 'none';
-      const uerr = document.getElementById('unlockCheckoutErr');
-      if (uerr) uerr.textContent = '';
-      showErr('step1Error', '');
-      showErr('step3Error', '');
-      showErr('step4Error', '');
-      document.getElementById('btnAnalyze').disabled = true;
-      document.getElementById('btnGenerate').disabled = true;
-      if (!state.accessToken) state.previewMode = true;
-      setStep(1);
-      applyWizardBlur();
     });
 
     await boot();
