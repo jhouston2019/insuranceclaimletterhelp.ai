@@ -30,8 +30,8 @@ HEADER:
 Claims Department
 [INSURER ADDRESS — copy from your denial letter]
 
-Re: Claim Number: [claim number], Policy Number:
-[policy number], Date of Loss: [date of loss]
+Re: Claim Number: [claim number from brief], Policy Number:
+[policy number from brief], Date of Loss: [Date of loss from brief]
 
 Dear [Adjuster name if known, otherwise: Claims Department],
 
@@ -39,6 +39,10 @@ SECTION I — BACKGROUND:
 Summarize: date claim filed, inspection dates if known,
 denial date, payment issued if any, brief factual summary
 of the loss event.
+Use the date of loss from the brief in Section I prose.
+Do not write around it or defer to "your records" if it is
+available. Use the same Date of loss value from the brief
+for both the Re: line and Section I.
 
 SECTION II — BASIS FOR DISPUTE:
 - Quote the exact denial language from the letter
@@ -200,14 +204,23 @@ function formatBriefList(items) {
   return items.map((item) => `- ${item}`).join("\n");
 }
 
-function buildLetterBrief(analysis) {
+function resolveDateOfLoss(analysis, body) {
+  const pick = (v) => {
+    if (v == null) return "";
+    const s = String(v).trim();
+    return s;
+  };
+  return pick(analysis?.dateOfLoss) || pick(body?.dateOfLoss) || "Not specified";
+}
+
+function buildLetterBrief(analysis, body) {
   const a = analysis || {};
   const contact = a.insurerContactInfo || {};
   const lines = [
     `Insurer: ${a.insurerName || "Not specified"}`,
     `Claim number: ${a.claimNumber || "Not specified"}`,
     `Policy number: ${a.policyNumber || "Not specified"}`,
-    `Date of loss: ${a.dateOfLoss || "Not specified"}`,
+    `Date of loss: ${resolveDateOfLoss(a, body)}`,
     `Adjuster: ${a.adjusterName || "Not specified"}`,
     `Disputed amount: ${a.amountDisputed || "Not specified"}`,
     `Recommended strategy: ${a.recommendedStrategy || "dispute"}`,
@@ -339,7 +352,7 @@ exports.handler = async (event) => {
     }
 
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-    const userMsg = `${buildLetterBrief(analysis)}
+    const userMsg = `${buildLetterBrief(analysis, body)}
 
 Strategy: ${strat}
 Insured name: ${insuredName || "[INSURED NAME]"}

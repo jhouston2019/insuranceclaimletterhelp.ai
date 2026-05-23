@@ -1507,6 +1507,7 @@ Phone: 1-800-555-0100`;
           insuredName: document.getElementById('fillName').value,
           insuredAddress: document.getElementById('fillAddress').value,
           additionalContext: additional,
+          dateOfLoss: state.analysis?.dateOfLoss || document.getElementById('dateOfLoss').value || null,
         };
         if (useStripePaid) letterBody.stripe_session_id = state.stripeSessionId;
 
