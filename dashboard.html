@@ -287,6 +287,9 @@
       throw new Error('Not authenticated');
     }
 
+    const { data: { session } } = await supabase.auth.getSession();
+    const accessToken = session?.access_token || null;
+
     // Update nav
     const btnSignOut = document.getElementById('btnSignOut');
     btnSignOut.textContent = 'Log out';
@@ -326,11 +329,12 @@
         const parsed = typeof job.letter_full === 'string'
           ? JSON.parse(job.letter_full)
           : job.letter_full;
-        const picked = parsed.plainEnglish
-          || parsed.summary
-          || parsed.whatInsuranceIsSaying;
+        const { _wizardFill, ...analysis } = parsed;
+        const picked = analysis.plainEnglish
+          || analysis.summary
+          || analysis.whatInsuranceIsSaying;
         if (picked) return String(picked);
-        const json = JSON.stringify(parsed, null, forExport ? 2 : undefined);
+        const json = JSON.stringify(analysis, null, forExport ? 2 : undefined);
         return forExport ? json : json.slice(0, 300);
       } catch {
         const s = String(job.letter_full);
@@ -341,30 +345,51 @@
     function analysisFromJob(job) {
       if (!job.letter_full) return {};
       try {
-        return typeof job.letter_full === 'string'
+        const parsed = typeof job.letter_full === 'string'
           ? JSON.parse(job.letter_full)
           : job.letter_full;
+        const { _wizardFill, ...analysis } = parsed;
+        return analysis;
       } catch {
         return {};
       }
     }
 
+    function wizardFillFromJob(job) {
+      if (!job.letter_full) return {};
+      try {
+        const parsed = typeof job.letter_full === 'string'
+          ? JSON.parse(job.letter_full)
+          : job.letter_full;
+        return parsed._wizardFill || {};
+      } catch {
+        return {};
+      }
+    }
+
+    function cleanInsurerName(name, fallback) {
+      const n = String(name || '').trim();
+      if (!n || /string\s*[—\-]/i.test(n)) return String(fallback || '').trim();
+      return n;
+    }
+
     function buildFillValuesFromJob(job) {
       const a = analysisFromJob(job);
+      const wf = wizardFillFromJob(job);
       const contact = a.insurerContactInfo || {};
       return {
-        name: '',
-        address: '',
-        city: '',
-        phone: '',
-        email: '',
-        claimNumber: job.claim_number || a.claimNumber || '',
-        policyNumber: job.policy_number || a.policyNumber || '',
-        dateOfLoss: a.dateOfLoss || '',
-        disputedAmount: a.amountDisputed || '',
-        insurerAddress: a.insurerAddress || contact.address || '',
-        adjusterName: a.adjusterName || '',
-        insurerName: a.insurerName || job.payer_name || '',
+        name: wf.fillName || '',
+        address: wf.fillAddress || '',
+        city: wf.fillCity || '',
+        phone: wf.fillPhone || '',
+        email: wf.fillEmail || '',
+        claimNumber: wf.fillClaimNumber || a.claimNumber || '',
+        policyNumber: wf.fillPolicyNumber || a.policyNumber || '',
+        dateOfLoss: wf.fillDateOfLoss || a.dateOfLoss || '',
+        disputedAmount: wf.fillDisputedAmount || a.amountDisputed || '',
+        insurerAddress: wf.fillInsurerAddress || a.insurerAddress || contact.address || '',
+        adjusterName: wf.fillAdjusterName || a.adjusterName || '',
+        insurerName: cleanInsurerName(a.insurerName, job.payer_name || ''),
         today: new Date(job.created_at || Date.now()).toLocaleDateString('en-US', {
           year: 'numeric', month: 'long', day: 'numeric',
         }),
@@ -433,7 +458,7 @@
     }
 
     function letterPlainFromJob(job) {
-      return filledLetterFromJob(job);
+      return job._filledLetter || filledLetterFromJob(job);
     }
 
     function jobHasAnyDeliverable(job) {
@@ -617,26 +642,42 @@ ${letterBlock}
       });
     }
 
-    function openModal(job) {
-      currentModalJob = job;
+    async function fetchFilledLetter(jobId) {
+      if (!accessToken) return null;
+      try {
+        const res = await fetch('/.netlify/functions/get-filled-letter', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: 'Bearer ' + accessToken,
+          },
+          body: JSON.stringify({ job_id: jobId }),
+        });
+        if (!res.ok) return null;
+        const data = await res.json();
+        return data.letter || null;
+      } catch {
+        return null;
+      }
+    }
+
+    function showModal(job, letterText) {
+      currentModalJob = { ...job, _filledLetter: letterText };
       setExportButtonLabels();
 
       const title = job.payer_name || job.claim_type || 'Claim';
       document.getElementById('modalTitle').textContent = title;
 
-      // Analysis summary (modal preview may truncate JSON)
       const analysisPreview = analysisSummaryFromJob(job, false);
       document.getElementById('modalAnalysis').textContent =
         analysisPreview.trim() ? analysisPreview : '—';
 
-      // Strategy
       document.getElementById('modalStrategy').textContent =
         strategyFromJob(job) || '—';
 
-      // Letter — apply same placeholder fill as the wizard deliverable view
       const letterEl = document.getElementById('modalLetter');
       letterEl.classList.add('letter-text-plain');
-      letterEl.textContent = filledLetterFromJob(job) || 'No letter saved.';
+      letterEl.textContent = letterText || 'No letter saved.';
 
       const copyBtn = document.getElementById('btnCopyLetter');
       const pdfBtn = document.getElementById('btnPdfLetter');
@@ -647,6 +688,16 @@ ${letterBlock}
       wordBtn.disabled = !canExport;
 
       document.getElementById('modalBackdrop').classList.add('open');
+    }
+
+    function openModal(job) {
+      showModal(job, filledLetterFromJob(job));
+      fetchFilledLetter(job.id).then((letter) => {
+        if (letter && currentModalJob?.id === job.id) {
+          currentModalJob = { ...job, _filledLetter: letter };
+          document.getElementById('modalLetter').textContent = letter;
+        }
+      });
     }
 
     document.getElementById('modalClose').addEventListener('click', () => {

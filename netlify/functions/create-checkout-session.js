@@ -1,6 +1,7 @@
 const Stripe = require("stripe");
 const { createClient } = require("@supabase/supabase-js");
 const { getSupabaseAdmin } = require("./_supabase");
+const { packLetterFull } = require("./_letter-placeholders");
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
 
@@ -127,9 +128,7 @@ exports.handler = async (event) => {
         claimJobPayload.letter_html = wizardState.letterRaw;
       }
       if (wizardState.analysis) {
-        claimJobPayload.letter_full = typeof wizardState.analysis === "string"
-          ? wizardState.analysis
-          : JSON.stringify(wizardState.analysis);
+        claimJobPayload.letter_full = packLetterFull(wizardState.analysis, wizardState);
         claimJobPayload.preview_text = wizardState.analysis.plainEnglish
           || wizardState.analysis.summary
           || "";

@@ -20,4 +20,5 @@
 /api/billing-status                      /.netlify/functions/billing-status                 200
 /api/usage                             /.netlify/functions/usage                          200
 /api/recover-payment-state             /.netlify/functions/recover-payment-state          200
+/api/get-filled-letter                 /.netlify/functions/get-filled-letter              200
 /api/send-receipt                      /.netlify/functions/send-receipt                  200

@@ -4,7 +4,7 @@
 
 const Stripe = require("stripe");
 const { getSupabaseAdmin } = require("./_supabase");
-const { filledLetterFromJob } = require("./_letter-placeholders");
+const { filledLetterFromJob, packLetterFull } = require("./_letter-placeholders");
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
 
@@ -107,9 +107,7 @@ exports.handler = async (event) => {
         );
       }
       if (ws.analysis) {
-        updatePayload.letter_full = typeof ws.analysis === "string"
-          ? ws.analysis
-          : JSON.stringify(ws.analysis);
+        updatePayload.letter_full = packLetterFull(ws.analysis, ws);
       }
       if (ws.strategy) updatePayload.selected_strategy = ws.strategy;
 
