@@ -338,13 +338,102 @@
       }
     }
 
+    function analysisFromJob(job) {
+      if (!job.letter_full) return {};
+      try {
+        return typeof job.letter_full === 'string'
+          ? JSON.parse(job.letter_full)
+          : job.letter_full;
+      } catch {
+        return {};
+      }
+    }
+
+    function buildFillValuesFromJob(job) {
+      const a = analysisFromJob(job);
+      const contact = a.insurerContactInfo || {};
+      return {
+        name: '',
+        address: '',
+        city: '',
+        phone: '',
+        email: '',
+        claimNumber: job.claim_number || a.claimNumber || '',
+        policyNumber: job.policy_number || a.policyNumber || '',
+        dateOfLoss: a.dateOfLoss || '',
+        disputedAmount: a.amountDisputed || '',
+        insurerAddress: a.insurerAddress || contact.address || '',
+        adjusterName: a.adjusterName || '',
+        insurerName: a.insurerName || job.payer_name || '',
+        today: new Date(job.created_at || Date.now()).toLocaleDateString('en-US', {
+          year: 'numeric', month: 'long', day: 'numeric',
+        }),
+      };
+    }
+
+    function applyLetterPlaceholders(text, values) {
+      if (!text || !values) return text || '';
+      let html = String(text);
+      const v = values;
+      const exact = [
+        ['[INSURED NAME]', v.name], ['[PRINTED NAME]', v.name], ['[YOUR NAME]', v.name],
+        ['[INSURED SIGNATURE]', '________________________'],
+        ['[ADDRESS]', v.address], ['[CITY, STATE ZIP]', v.city],
+        ['[PHONE]', v.phone], ['[EMAIL]', v.email],
+        ['[CLAIM NUMBER]', v.claimNumber], ['[POLICY NUMBER]', v.policyNumber],
+        ['[DATE OF LOSS]', v.dateOfLoss], ['[DISPUTED AMOUNT]', v.disputedAmount],
+        ['[INSURER ADDRESS]', v.insurerAddress], ['[ADJUSTER NAME]', v.adjusterName],
+        ['[DATE]', v.today],
+      ];
+      for (const [ph, val] of exact) {
+        if (!val) continue;
+        html = html.replace(new RegExp(ph.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), val);
+      }
+      const patterns = [
+        [/\[Insurer Name from analysis\]/gi, v.insurerName],
+        [/\[INSURED NAME[^\]]*\]/gi, v.name],
+        [/\[CLAIM NUMBER[^\]]*\]/gi, v.claimNumber],
+        [/\[POLICY NUMBER[^\]]*\]/gi, v.policyNumber],
+        [/\[DATE OF LOSS[^\]]*\]/gi, v.dateOfLoss],
+        [/\[DISPUTED AMOUNT[^\]]*\]/gi, v.disputedAmount],
+        [/\[INSURER ADDRESS[^\]]*\]/gi, v.insurerAddress],
+        [/\[ADJUSTER NAME[^\]]*\]/gi, v.adjusterName],
+        [/\[ADDRESS[^\]]*\]/gi, v.address],
+        [/\[CITY, STATE ZIP[^\]]*\]/gi, v.city],
+        [/\[PHONE[^\]]*\]/gi, v.phone],
+        [/\[EMAIL[^\]]*\]/gi, v.email],
+        [/\[PRINTED NAME[^\]]*\]/gi, v.name],
+        [/\[DATE[^\]]*\]/gi, v.today],
+      ];
+      for (const [re, val] of patterns) {
+        if (!val) continue;
+        html = html.replace(re, val);
+      }
+      if (v.claimNumber) {
+        html = html.replace(/Claim Number:\s*\[[^\]]+\]/gi, 'Claim Number: ' + v.claimNumber);
+      }
+      if (v.policyNumber) {
+        html = html.replace(/Policy Number:\s*\[[^\]]+\]/gi, 'Policy Number: ' + v.policyNumber);
+      }
+      if (v.dateOfLoss) {
+        html = html.replace(/Date of Loss:\s*\[[^\]]+\]/gi, 'Date of Loss: ' + v.dateOfLoss);
+      }
+      return html;
+    }
+
+    function filledLetterFromJob(job) {
+      const raw = (job.letter_html || '').trim();
+      if (!raw) return '';
+      return applyLetterPlaceholders(raw, buildFillValuesFromJob(job));
+    }
+
     function strategyFromJob(job) {
       const s = job.selected_strategy;
       return (s != null && String(s).trim()) ? String(s).trim() : '';
     }
 
     function letterPlainFromJob(job) {
-      return htmlToPlainText(job.letter_html || '');
+      return filledLetterFromJob(job);
     }
 
     function jobHasAnyDeliverable(job) {
@@ -374,12 +463,9 @@
     function buildDeliverableWordHtml(job, docTitle) {
       const analysisRaw = analysisSummaryFromJob(job, true).trim();
       const strategyRaw = strategyFromJob(job);
-      const letterHtmlRaw = (job.letter_html || '').trim();
       const analysisHtml = escapeHtml(analysisRaw || '—').replace(/\n/g, '<br/>');
       const strategyHtml = escapeHtml(strategyRaw || '—').replace(/\n/g, '<br/>');
-      const letterBlock = letterHtmlRaw.includes('<')
-        ? `<div>${letterHtmlRaw}</div>`
-        : `<pre style="white-space:pre-wrap;font-family:Calibri;font-size:11pt;">${escapeHtml(letterPlainFromJob(job) || '—')}</pre>`;
+      const letterBlock = `<pre style="white-space:pre-wrap;font-family:Calibri;font-size:11pt;">${escapeHtml(filledLetterFromJob(job) || '—')}</pre>`;
       const safeTitle = escapeHtml(docTitle || 'Deliverables');
       return `<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office"><head><meta charset="utf-8"><title>${safeTitle}</title></head><body>
 <div style="font-family:Calibri,sans-serif;font-size:11pt;">
@@ -482,7 +568,7 @@ ${letterBlock}
     // Load letters from claim_jobs
     const { data: jobs, error: jobsErr } = await supabase
       .from('claim_jobs')
-      .select('id, created_at, claim_type, payer_name, letter_html, letter_full, selected_strategy, paid, is_unlocked')
+      .select('id, created_at, claim_type, payer_name, policy_number, claim_number, letter_html, letter_full, selected_strategy, paid, is_unlocked')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
@@ -547,15 +633,10 @@ ${letterBlock}
       document.getElementById('modalStrategy').textContent =
         strategyFromJob(job) || '—';
 
-      // Letter — HTML when present for readability; plain styling fallback
+      // Letter — apply same placeholder fill as the wizard deliverable view
       const letterEl = document.getElementById('modalLetter');
-      const raw = job.letter_html || '';
-      letterEl.classList.toggle('letter-text-plain', !raw.includes('<'));
-      if (raw.includes('<')) {
-        letterEl.innerHTML = raw;
-      } else {
-        letterEl.textContent = raw || 'No letter saved.';
-      }
+      letterEl.classList.add('letter-text-plain');
+      letterEl.textContent = filledLetterFromJob(job) || 'No letter saved.';
 
       const copyBtn = document.getElementById('btnCopyLetter');
       const pdfBtn = document.getElementById('btnPdfLetter');

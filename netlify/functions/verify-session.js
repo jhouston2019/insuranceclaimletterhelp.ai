@@ -4,6 +4,7 @@
 
 const Stripe = require("stripe");
 const { getSupabaseAdmin } = require("./_supabase");
+const { filledLetterFromJob } = require("./_letter-placeholders");
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
 
@@ -89,7 +90,22 @@ exports.handler = async (event) => {
       };
 
       const ws = row.state || {};
-      if (ws.letterRaw) updatePayload.letter_html = ws.letterRaw;
+      if (ws.letterRaw) {
+        updatePayload.letter_html = filledLetterFromJob(
+          {
+            letter_html: ws.letterRaw,
+            letter_full: ws.analysis
+              ? typeof ws.analysis === "string"
+                ? ws.analysis
+                : JSON.stringify(ws.analysis)
+              : null,
+            claim_number: ws.claimNumber || ws.fillClaimNumber || null,
+            policy_number: ws.policyNumber || ws.fillPolicyNumber || null,
+            payer_name: ws.payerName || ws.adjusterName || null,
+          },
+          ws
+        );
+      }
       if (ws.analysis) {
         updatePayload.letter_full = typeof ws.analysis === "string"
           ? ws.analysis
