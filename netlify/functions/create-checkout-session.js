@@ -1,7 +1,7 @@
 const Stripe = require("stripe");
 const { createClient } = require("@supabase/supabase-js");
 const { getSupabaseAdmin } = require("./_supabase");
-const { packLetterFull } = require("./_letter-placeholders");
+const { buildClaimJobPayload } = require("./_claim-job-persist");
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
 
@@ -114,41 +114,10 @@ exports.handler = async (event) => {
     if (wizardState != null && typeof wizardState === "object") {
       const admin = getSupabaseAdmin();
 
-      // Insert claim_jobs row to persist the letter
-      const claimJobPayload = {
-        stripe_checkout_session_id: session.id,
+      const claimJobPayload = buildClaimJobPayload(wizardState, session.id, {
+        userId,
         paid: false,
-        is_unlocked: false,
-      };
-      if (userId) claimJobPayload.user_id = userId;
-      if (userEmail) claimJobPayload.customer_email = userEmail;
-
-      // Extract letter fields from wizardState
-      if (wizardState.letterRaw) {
-        claimJobPayload.letter_html = wizardState.letterRaw;
-      }
-      if (wizardState.analysis) {
-        claimJobPayload.letter_full = packLetterFull(wizardState.analysis, wizardState);
-        claimJobPayload.preview_text = wizardState.analysis.plainEnglish
-          || wizardState.analysis.summary
-          || "";
-      }
-      if (wizardState.strategy) {
-        claimJobPayload.selected_strategy = wizardState.strategy;
-      }
-      if (wizardState.claimType) {
-        claimJobPayload.claim_type = wizardState.claimType;
-      }
-      if (wizardState.policyNumber) {
-        claimJobPayload.policy_number = wizardState.policyNumber;
-      }
-      if (wizardState.claimNumber) {
-        claimJobPayload.claim_number = wizardState.claimNumber;
-      }
-      if (wizardState.payerName || wizardState.adjusterName) {
-        claimJobPayload.payer_name = wizardState.payerName
-          || wizardState.adjusterName || "";
-      }
+      });
 
       const { data: jobRow, error: jobErr } = await admin
         .from("claim_jobs")
@@ -157,8 +126,7 @@ exports.handler = async (event) => {
         .single();
 
       if (jobErr) {
-        console.error("claim_jobs insert:", jobErr);
-        // Non-fatal — continue with checkout
+        console.error("claim_jobs insert:", jobErr.message, jobErr.details || "");
       }
 
       const jobId = jobRow?.id ?? null;

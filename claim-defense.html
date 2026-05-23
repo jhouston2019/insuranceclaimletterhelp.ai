@@ -647,11 +647,38 @@ Phone: 1-800-555-0100`;
       };
     }
 
+    async function linkPurchaseToAccount(sessionId, token) {
+      if (!sessionId || !token) return false;
+      try {
+        const res = await fetch('/.netlify/functions/record-purchase', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: 'Bearer ' + token,
+          },
+          body: JSON.stringify({ stripe_session_id: sessionId }),
+        });
+        return res.ok;
+      } catch (e) {
+        console.warn('record-purchase:', e);
+        return false;
+      }
+    }
+
     async function restoreWizardState(sessionId) {
       try {
+        const headers = { 'Content-Type': 'application/json' };
+        if (wizardSupabase) {
+          const { data: { session } } = await wizardSupabase.auth.getSession();
+          if (session?.access_token) {
+            state.accessToken = session.access_token;
+            headers.Authorization = 'Bearer ' + session.access_token;
+          }
+        }
+
         const res = await fetch('/.netlify/functions/verify-session', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify({ session_id: sessionId }),
         });
         if (!res.ok) return false;
@@ -683,16 +710,8 @@ Phone: 1-800-555-0100`;
 
         try { sessionStorage.setItem('stripeSessionId', sessionId); } catch (_) {}
 
-        // Fire-and-forget: link job to user if already signed in
         if (state.accessToken && sessionId) {
-          fetch('/.netlify/functions/record-purchase', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer ' + state.accessToken,
-            },
-            body: JSON.stringify({ stripe_session_id: sessionId }),
-          }).catch((e) => console.warn('record-purchase fire-and-forget:', e));
+          linkPurchaseToAccount(sessionId, state.accessToken);
         }
 
         if (state.analysis) renderStep2();
@@ -922,7 +941,10 @@ Phone: 1-800-555-0100`;
         const ok = await restoreWizardState(sessionIdUrl);
         if (ok) {
           const { data: { session } } = await wizardSupabase.auth.getSession();
-          if (session?.access_token) state.accessToken = session.access_token;
+          if (session?.access_token) {
+            state.accessToken = session.access_token;
+            await linkPurchaseToAccount(sessionIdUrl, session.access_token);
+          }
           document.getElementById('authBanner').style.display = 'none';
           applyWizardBlur();
           return;
@@ -959,6 +981,9 @@ Phone: 1-800-555-0100`;
 
       state.accessToken = session.access_token;
       syncPreviewMode();
+
+      const linkSid = state.stripeSessionId || sessionIdUrl;
+      if (linkSid) await linkPurchaseToAccount(linkSid, session.access_token);
 
       document.getElementById('authBanner').style.display = 'none';
       applyWizardBlur();

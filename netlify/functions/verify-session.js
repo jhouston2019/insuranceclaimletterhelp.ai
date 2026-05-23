@@ -1,10 +1,12 @@
 /**
- * Validates a Stripe Checkout session is paid and returns persisted wizard_state.
+ * Validates Stripe checkout is paid, persists deliverables to claim_jobs,
+ * and links the job to the signed-in user when possible.
  */
 
 const Stripe = require("stripe");
+const { createClient } = require("@supabase/supabase-js");
 const { getSupabaseAdmin } = require("./_supabase");
-const { filledLetterFromJob, packLetterFull } = require("./_letter-placeholders");
+const { buildClaimJobPayload } = require("./_claim-job-persist");
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
 
@@ -13,6 +15,35 @@ const corsOk = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
+
+async function resolveUserId(event, stripeSession) {
+  let userId =
+    stripeSession.metadata?.supabase_user_id ||
+    stripeSession.metadata?.user_id ||
+    stripeSession.client_reference_id ||
+    null;
+
+  const bearer = (event.headers.authorization || event.headers.Authorization || "")
+    .replace(/^Bearer\s+/i, "")
+    .trim();
+  if (!bearer) return userId;
+
+  const url = process.env.SUPABASE_URL;
+  const anonKey = process.env.SUPABASE_ANON_KEY;
+  if (!url || !anonKey) return userId;
+
+  try {
+    const authClient = createClient(url, anonKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const {
+      data: { user },
+    } = await authClient.auth.getUser(bearer);
+    if (user?.id) return user.id;
+  } catch (_) {}
+
+  return userId;
+}
 
 exports.handler = async (event) => {
   if (event.httpMethod === "OPTIONS") {
@@ -65,6 +96,8 @@ exports.handler = async (event) => {
     }
 
     const admin = getSupabaseAdmin();
+    const userIdToLink = await resolveUserId(event, stripeSession);
+
     const { data: row, error } = await admin
       .from("wizard_checkout_sessions")
       .select("id, state, job_id")
@@ -80,36 +113,50 @@ exports.handler = async (event) => {
       };
     }
 
-    const jobId = row.job_id;
-    if (jobId) {
-      const updatePayload = {
-        paid: true,
-        is_unlocked: true,
-        stripe_session_id: sessionId,
-        updated_at: new Date().toISOString(),
-      };
+    const ws = row.state || {};
+    let jobId = row.job_id;
 
-      const ws = row.state || {};
-      if (ws.letterRaw) {
-        updatePayload.letter_html = filledLetterFromJob(
-          {
-            letter_html: ws.letterRaw,
-            letter_full: ws.analysis
-              ? typeof ws.analysis === "string"
-                ? ws.analysis
-                : JSON.stringify(ws.analysis)
-              : null,
-            claim_number: ws.claimNumber || ws.fillClaimNumber || null,
-            policy_number: ws.policyNumber || ws.fillPolicyNumber || null,
-            payer_name: ws.payerName || ws.adjusterName || null,
-          },
-          ws
-        );
+    if (!jobId) {
+      const { data: existingJob } = await admin
+        .from("claim_jobs")
+        .select("id")
+        .eq("stripe_checkout_session_id", sessionId)
+        .maybeSingle();
+
+      if (existingJob?.id) {
+        jobId = existingJob.id;
+      } else {
+        const insertPayload = buildClaimJobPayload(ws, sessionId, {
+          userId: userIdToLink,
+          paid: true,
+        });
+        const { data: newJob, error: insertErr } = await admin
+          .from("claim_jobs")
+          .insert(insertPayload)
+          .select("id")
+          .single();
+
+        if (insertErr) {
+          console.error("verify-session: claim_jobs insert failed", insertErr.message);
+        } else if (newJob?.id) {
+          jobId = newJob.id;
+        }
       }
-      if (ws.analysis) {
-        updatePayload.letter_full = packLetterFull(ws.analysis, ws);
+
+      if (jobId) {
+        await admin
+          .from("wizard_checkout_sessions")
+          .update({ job_id: jobId })
+          .eq("stripe_session_id", sessionId);
       }
-      if (ws.strategy) updatePayload.selected_strategy = ws.strategy;
+    }
+
+    if (jobId) {
+      const updatePayload = buildClaimJobPayload(ws, sessionId, {
+        userId: userIdToLink,
+        paid: true,
+      });
+      updatePayload.updated_at = new Date().toISOString();
 
       const { error: updateErr } = await admin
         .from("claim_jobs")
@@ -121,27 +168,13 @@ exports.handler = async (event) => {
       }
     }
 
-    let customerEmail = null;
-    try {
-      customerEmail = stripeSession.customer_details?.email
-        || stripeSession.customer_email
-        || null;
-    } catch (_) {}
-
-    if (customerEmail && jobId) {
-      await admin
-        .from("claim_jobs")
-        .update({ customer_email: customerEmail })
-        .eq("id", jobId);
-    }
-
     return {
       statusCode: 200,
       headers: { ...corsOk, "Content-Type": "application/json" },
       body: JSON.stringify({
         paid: true,
-        wizardState: row.state ?? {},
-        jobId: jobId,
+        wizardState: ws,
+        jobId: jobId || null,
       }),
     };
   } catch (e) {

@@ -290,6 +290,23 @@
     const { data: { session } } = await supabase.auth.getSession();
     const accessToken = session?.access_token || null;
 
+    // Link any recent purchase from this browser to the signed-in account
+    try {
+      const pendingSid = sessionStorage.getItem('stripeSessionId');
+      if (pendingSid && accessToken) {
+        await fetch('/.netlify/functions/record-purchase', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: 'Bearer ' + accessToken,
+          },
+          body: JSON.stringify({ stripe_session_id: pendingSid }),
+        });
+      }
+    } catch (e) {
+      console.warn('dashboard record-purchase sync:', e);
+    }
+
     // Update nav
     const btnSignOut = document.getElementById('btnSignOut');
     btnSignOut.textContent = 'Log out';

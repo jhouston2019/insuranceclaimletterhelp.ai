@@ -1,5 +1,6 @@
 const { getSupabaseAdmin } = require("./_supabase");
 const { createClient } = require("@supabase/supabase-js");
+const { buildClaimJobPayload } = require("./_claim-job-persist");
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -21,10 +22,9 @@ exports.handler = async (event) => {
   }
 
   try {
-    // Verify JWT — userId derived from token only, never from body
-    const authHeader =
-      event.headers.authorization || event.headers.Authorization || "";
-    const bearer = authHeader.replace(/^Bearer\s+/i, "").trim();
+    const bearer = (event.headers.authorization || event.headers.Authorization || "")
+      .replace(/^Bearer\s+/i, "")
+      .trim();
     if (!bearer) {
       return {
         statusCode: 401,
@@ -46,8 +46,10 @@ exports.handler = async (event) => {
     const authClient = createClient(url, anonKey, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
-    const { data: { user }, error: authErr } =
-      await authClient.auth.getUser(bearer);
+    const {
+      data: { user },
+      error: authErr,
+    } = await authClient.auth.getUser(bearer);
     if (authErr || !user) {
       return {
         statusCode: 401,
@@ -57,9 +59,7 @@ exports.handler = async (event) => {
     }
 
     const body = JSON.parse(event.body || "{}");
-    const stripeSessionId = body.stripe_session_id
-      || body.stripeSessionId
-      || null;
+    const stripeSessionId = body.stripe_session_id || body.stripeSessionId || null;
 
     if (!stripeSessionId) {
       return {
@@ -71,18 +71,61 @@ exports.handler = async (event) => {
 
     const admin = getSupabaseAdmin();
 
-    // Find claim_jobs row by stripe_session_id or stripe_checkout_session_id
-    const { data: job, error: jobErr } = await admin
+    let { data: job, error: jobErr } = await admin
       .from("claim_jobs")
       .select("id, user_id, paid")
-      .or(
-        `stripe_session_id.eq.${stripeSessionId},` +
-        `stripe_checkout_session_id.eq.${stripeSessionId}`
-      )
+      .eq("stripe_checkout_session_id", stripeSessionId)
       .maybeSingle();
 
-    if (jobErr || !job) {
-      console.error("record-purchase: job not found", jobErr?.message);
+    if (jobErr) {
+      console.error("record-purchase lookup:", jobErr.message);
+    }
+
+    if (!job) {
+      const { data: wRow } = await admin
+        .from("wizard_checkout_sessions")
+        .select("state, job_id")
+        .eq("stripe_session_id", stripeSessionId)
+        .maybeSingle();
+
+      if (wRow?.job_id) {
+        const { data: byId } = await admin
+          .from("claim_jobs")
+          .select("id, user_id, paid")
+          .eq("id", wRow.job_id)
+          .maybeSingle();
+        job = byId;
+      }
+
+      if (!job && wRow?.state) {
+        const insertPayload = buildClaimJobPayload(wRow.state, stripeSessionId, {
+          userId: user.id,
+          paid: true,
+        });
+        const { data: newJob, error: insertErr } = await admin
+          .from("claim_jobs")
+          .insert(insertPayload)
+          .select("id, user_id, paid")
+          .single();
+
+        if (insertErr) {
+          console.error("record-purchase insert:", insertErr.message);
+          return {
+            statusCode: 500,
+            headers: corsHeaders,
+            body: JSON.stringify({ error: "Failed to save deliverables to your account" }),
+          };
+        }
+        job = newJob;
+
+        await admin
+          .from("wizard_checkout_sessions")
+          .update({ job_id: job.id })
+          .eq("stripe_session_id", stripeSessionId);
+      }
+    }
+
+    if (!job) {
       return {
         statusCode: 404,
         headers: corsHeaders,
@@ -90,17 +133,18 @@ exports.handler = async (event) => {
       };
     }
 
-    // Link user_id to the job — idempotent
     const { error: updateErr } = await admin
       .from("claim_jobs")
       .update({
         user_id: user.id,
+        paid: true,
+        is_unlocked: true,
         updated_at: new Date().toISOString(),
       })
       .eq("id", job.id);
 
     if (updateErr) {
-      console.error("record-purchase: update failed", updateErr.message);
+      console.error("record-purchase update:", updateErr.message);
       return {
         statusCode: 500,
         headers: corsHeaders,
@@ -108,22 +152,24 @@ exports.handler = async (event) => {
       };
     }
 
-    // Insert into processed_sessions for idempotency
-    await admin
-      .from("processed_sessions")
-      .upsert({
-        stripe_session_id: stripeSessionId,
-        user_id: user.id,
-        job_id: job.id,
-      }, { onConflict: "stripe_session_id" })
-      .catch((e) => console.warn("processed_sessions upsert:", e.message));
+    try {
+      await admin.from("processed_sessions").upsert(
+        {
+          stripe_checkout_session_id: stripeSessionId,
+          user_id: user.id,
+          job_id: job.id,
+        },
+        { onConflict: "stripe_checkout_session_id" }
+      );
+    } catch (e) {
+      console.warn("processed_sessions upsert:", e.message);
+    }
 
     return {
       statusCode: 200,
       headers: corsHeaders,
       body: JSON.stringify({ ok: true, job_id: job.id }),
     };
-
   } catch (e) {
     console.error("record-purchase:", e.message);
     return {
