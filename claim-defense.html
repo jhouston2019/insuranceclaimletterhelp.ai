@@ -1520,7 +1520,7 @@ Phone: 1-800-555-0100`;
           showErr('step3Error', data.error || 'Generation failed.');
           return;
         }
-        state.letterRaw = data.letter || '';
+        state.letterRaw = stripSignaturePlaceholders(data.letter || '');
         state.editing = false;
         document.getElementById('letterBody').contentEditable = 'false';
         document.getElementById('letterBody').innerHTML = highlightPlaceholders(state.letterRaw);
@@ -1571,11 +1571,15 @@ Phone: 1-800-555-0100`;
       };
     }
 
+    function stripSignaturePlaceholders(text) {
+      if (!text) return text || '';
+      return String(text).replace(/^[^\S\n]*.*\[[^\]]*signature[^\]]*\][^\n]*\n?/gim, '');
+    }
+
     function applyLetterPlaceholders(text, values) {
       if (!text || !values) return text || '';
-      let html = String(text);
+      let html = stripSignaturePlaceholders(text);
       const v = values;
-      html = html.replace(/\[INSURED SIGNATURE[^\]]*\]/gi, '[INSURED SIGNATURE]');
       const exact = [
         ['[INSURED NAME]', v.name], ['[PRINTED NAME]', v.name], ['[YOUR NAME]', v.name],
         ['[ADDRESS]', v.address], ['[CITY, STATE ZIP]', v.city],

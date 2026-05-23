@@ -119,16 +119,23 @@ function buildFillValuesFromJob(job, wizardState = {}) {
   });
 }
 
+function stripSignaturePlaceholders(text) {
+  if (!text) return text || "";
+  return String(text).replace(
+    /^[^\S\n]*.*\[[^\]]*signature[^\]]*\][^\n]*\n?/gim,
+    ""
+  );
+}
+
 function applyLetterPlaceholders(text, values) {
   if (!text || !values) return text || "";
-  let html = String(text);
+  let html = stripSignaturePlaceholders(text);
   const v = values;
 
   const exact = [
     ["[INSURED NAME]", v.name],
     ["[PRINTED NAME]", v.name],
     ["[YOUR NAME]", v.name],
-    ["[INSURED SIGNATURE]", "________________________"],
     ["[ADDRESS]", v.address],
     ["[CITY, STATE ZIP]", v.city],
     ["[PHONE]", v.phone],

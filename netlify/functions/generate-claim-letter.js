@@ -107,14 +107,13 @@ of this matter."
 
 Sincerely,
 
-[INSURED SIGNATURE]
 [PRINTED NAME]
 [DATE]
 [PHONE]
 [EMAIL]
 
-Always output [INSURED SIGNATURE] as a bracketed placeholder.
-Never output a raw underscore line for the signature.
+Do not include a signature line or any signature placeholder.
+The insured will sign the printed letter by hand.
 
 Enclosures:
 [list from documentationNeeded in analysis]
