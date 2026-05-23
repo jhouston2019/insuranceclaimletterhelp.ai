@@ -195,6 +195,45 @@ function normalizeStrategy(s) {
   return "dispute";
 }
 
+function formatBriefList(items) {
+  if (!Array.isArray(items) || items.length === 0) return "None";
+  return items.map((item) => `- ${item}`).join("\n");
+}
+
+function buildLetterBrief(analysis) {
+  const a = analysis || {};
+  const contact = a.insurerContactInfo || {};
+  const lines = [
+    `Insurer: ${a.insurerName || "Not specified"}`,
+    `Claim number: ${a.claimNumber || "Not specified"}`,
+    `Policy number: ${a.policyNumber || "Not specified"}`,
+    `Date of loss: ${a.dateOfLoss || "Not specified"}`,
+    `Adjuster: ${a.adjusterName || "Not specified"}`,
+    `Disputed amount: ${a.amountDisputed || "Not specified"}`,
+    `Recommended strategy: ${a.recommendedStrategy || "dispute"}`,
+    `Insurer mailing address: ${contact.address || "Not specified"}`,
+    "",
+    "Exact denial language:",
+    a.denialBasis || "Not specified",
+    "",
+    "Procedural defects to attack:",
+    formatBriefList(a.proceduralDefects),
+    "",
+    "Strongest arguments:",
+    formatBriefList(a.winningAngles),
+    "",
+    "Regulatory duties to cite:",
+    formatBriefList(a.regulatoryDutiesToCite),
+    "",
+    "Policy provisions to invoke:",
+    formatBriefList(a.policyProvisionsToInvoke),
+    "",
+    "Documentation for enclosures list:",
+    formatBriefList(a.documentationNeeded),
+  ];
+  return lines.join("\n");
+}
+
 async function stripeWizardPaid(sessionId) {
   if (!sessionId || typeof sessionId !== "string" || !process.env.STRIPE_SECRET_KEY) {
     return false;
@@ -300,7 +339,8 @@ exports.handler = async (event) => {
     }
 
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-    const userMsg = `Analysis: ${JSON.stringify(analysis)}
+    const userMsg = `${buildLetterBrief(analysis)}
+
 Strategy: ${strat}
 Insured name: ${insuredName || "[INSURED NAME]"}
 Insured address: ${insuredAddress || "[ADDRESS]"}
@@ -310,7 +350,7 @@ Generate the complete dispute letter now.`;
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o",
-      max_tokens: 1500,
+      max_tokens: 2500,
       messages: [
         { role: "system", content: LETTER_SYSTEM_PROMPT },
         { role: "user", content: userMsg },

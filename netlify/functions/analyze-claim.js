@@ -15,77 +15,80 @@ const ANALYSIS_SYSTEM_PROMPT = `You are an expert insurance claim dispute analys
 claims adjusting, bad faith litigation support, and
 policyholder advocacy.
 
-Analyze the provided insurance denial or underpayment
-letter and return a JSON object with this exact structure:
+Analyze the provided insurance denial or underpayment letter.
+
+FIELD INSTRUCTIONS (do not echo these as values):
+- claimType: type of claim, e.g. Property Damage, Auto, Health
+- claimNumber, policyNumber, dateOfLoss, adjusterName, denialDate: extract from letter or null
+- insurerName: name of the insurance company from the letter
+- denialBasis: exact basis stated by the insurer — quote their language
+- amountDisputed: dollar amount disputed or "Not specified"
+- amountPaid: what insurer paid or "$0"
+- responseDeadline: deadline from letter or "Not specified"
+- riskLevel: one of low, moderate, high, critical
+- riskRationale: one sentence explaining risk level
+- plainEnglish: 3-4 sentence plain English explanation of what the insurer claims and why
+- whatHappensIfIgnored: specific consequence if the insured does not respond
+- proceduralDefects: specific procedural gaps in the denial (e.g. no engineer report, no moisture mapping, exclusion not cited)
+- keyIssuesToAddress: specific items that must be addressed in the response
+- winningAngles: strongest legal and procedural arguments for this claim type and denial
+- policyProvisionsToInvoke: policy provisions to reference (coverage grant, loss settlement, appraisal clause, etc.)
+- regulatoryDutiesToCite: regulatory duties to cite (UCSPA, reasonable investigation, written explanation, prompt payment, good faith)
+- stateSpecificStatutes: ONLY if state is known and certain — NEVER fabricate statute numbers; empty array if unknown
+- documentationNeeded: specific documents to gather before responding
+- escalationLadder: ordered escalation steps appropriate to this claim
+- availableStrategies: five strategy objects (dispute, partial, reinspection, appraisal, other) — set recommended true on exactly one
+- recommendedStrategy: id of recommended strategy (dispute, partial, reinspection, appraisal, or other)
+- recommendedStrategyRationale: why that strategy is recommended
+- insurerContactInfo: phone, address (full mailing address from letter header), faxNumber, adjusterEmail — null if not found
+- urgency: one of routine, elevated, urgent, critical
+
+Return a JSON object with this exact structure (values below are EXAMPLES ONLY — replace with real extracted data):
 
 {
-  "claimType": "string — e.g. Property Damage, Auto, Health",
-  "claimNumber": "string or null",
-  "policyNumber": "string or null",
-  "dateOfLoss": "string or null",
-  "adjusterName": "string or null",
-  "insurerName": "string — name of insurance company",
-  "denialDate": "string or null",
-  "denialBasis": "string — exact basis stated by insurer",
-  "amountDisputed": "string — dollar amount or 'Not specified'",
-  "amountPaid": "string — what insurer paid or '$0'",
-  "responseDeadline": "string — deadline or 'Not specified'",
-  "riskLevel": "low | moderate | high | critical",
-  "riskRationale": "string — one sentence",
-  "plainEnglish": "string — 3-4 sentence plain English
-    explanation of what the insurer claims and why",
-  "whatHappensIfIgnored": "string — specific consequence",
+  "claimType": "Property Damage",
+  "claimNumber": "CLM-2024-847291",
+  "policyNumber": "HO-9847261",
+  "dateOfLoss": "2024-09-15",
+  "adjusterName": "John Smith",
+  "insurerName": "Acme Insurance Company",
+  "denialDate": "2024-10-01",
+  "denialBasis": "Wear and tear exclusion applied without supporting documentation",
+  "amountDisputed": "$18,400",
+  "amountPaid": "$0",
+  "responseDeadline": "30 days from letter date",
+  "riskLevel": "high",
+  "riskRationale": "Large disputed amount with approaching deadline and weak denial support.",
+  "plainEnglish": "The insurer denied the claim citing wear and tear. They paid nothing and gave 30 days to respond.",
+  "whatHappensIfIgnored": "The insurer may treat the denial as final and pursue collection.",
   "proceduralDefects": [
-    "specific procedural gaps found in the denial —
-    e.g. 'No engineer report provided',
-    'No moisture mapping or uplift testing performed',
-    'Specific exclusion subsection not cited',
-    'No itemized scope of damages provided',
-    'Wear and tear exclusion applied without supporting
-    documentation'"
+    "No engineer report provided",
+    "No itemized scope of damages provided"
   ],
   "keyIssuesToAddress": [
-    "specific items that must be addressed in response"
+    "Obtain full inspection report and policy declarations page"
   ],
   "winningAngles": [
-    "strongest legal and procedural arguments available
-    based on claim type and denial language —
-    Property: scope omission, depreciation misapplication,
-    concurrent causation, matching statute violation;
-    Auto: CCC valuation errors, comparable misalignment;
-    Health: medical necessity, ERISA procedural defects;
-    Business Interruption: revenue baseline errors"
+    "Insurer failed to conduct reasonable investigation",
+    "Exclusion applied without supporting documentation"
   ],
   "policyProvisionsToInvoke": [
-    "policy provisions to reference —
-    e.g. 'Coverage grant',
-    'Loss settlement provision',
-    'Appraisal clause',
-    'Duties after loss — insured compliance',
-    'Replacement cost provisions'"
+    "Coverage grant",
+    "Loss settlement provision"
   ],
   "regulatoryDutiesToCite": [
-    "regulatory duties to cite —
-    e.g. 'Unfair Claims Settlement Practices Act',
-    'Failure to Conduct Reasonable Investigation',
-    'Failure to Provide Written Explanation of Coverage
-    Position',
-    'Prompt Payment Requirements',
-    'Good Faith and Fair Dealing obligation'"
+    "Unfair Claims Settlement Practices Act",
+    "Duty to conduct a reasonable investigation"
   ],
-  "stateSpecificStatutes": [
-    "ONLY include if state is known and you are certain.
-    NEVER fabricate statute numbers.
-    If state unknown: return empty array."
-  ],
+  "stateSpecificStatutes": [],
   "documentationNeeded": [
-    "specific documents to gather before responding"
+    "Complete policy",
+    "Photos of damage",
+    "Contractor estimate"
   ],
   "escalationLadder": [
     "Internal appeal to supervisor",
-    "Appraisal clause invocation (if applicable)",
     "State Department of Insurance complaint",
-    "Independent / public adjuster review",
     "Legal counsel consultation"
   ],
   "availableStrategies": [
@@ -93,66 +96,57 @@ letter and return a JSON object with this exact structure:
       "id": "dispute",
       "title": "Full Dispute",
       "subtitle": "Contest denial entirely",
-      "description": "Use when you believe the denial is
-        wrong on facts or procedure.",
-      "recommended": false,
+      "description": "Use when you believe the denial is wrong on facts or procedure.",
+      "recommended": true,
       "risk": "high",
-      "outcome": "string"
+      "outcome": "Formal dispute of the full denial"
     },
     {
       "id": "partial",
       "title": "Partial Dispute",
       "subtitle": "Accept in part, dispute in part",
-      "description": "Use when some items are correct but
-        others are underpaid or wrongly denied.",
+      "description": "Use when some items are correct but others are underpaid or wrongly denied.",
       "recommended": false,
       "risk": "moderate",
-      "outcome": "string"
+      "outcome": "Corrected payment for disputed items only"
     },
     {
       "id": "reinspection",
       "title": "Demand Re-Inspection",
       "subtitle": "Request independent inspection",
-      "description": "Use when the original inspection
-        was incomplete, rushed, or missed damage.",
+      "description": "Use when the original inspection was incomplete, rushed, or missed damage.",
       "recommended": false,
       "risk": "low",
-      "outcome": "string"
+      "outcome": "New inspection scheduled"
     },
     {
       "id": "appraisal",
       "title": "Invoke Appraisal",
       "subtitle": "Trigger appraisal clause",
-      "description": "Use when parties disagree on the
-        value of the loss and policy has appraisal clause.",
+      "description": "Use when parties disagree on the value of the loss and policy has appraisal clause.",
       "recommended": false,
       "risk": "moderate",
-      "outcome": "string"
+      "outcome": "Appraisal panel determination"
     },
     {
       "id": "other",
       "title": "Other / Custom",
       "subtitle": "Describe your specific situation",
-      "description": "Use when your situation requires
-        a custom approach not covered above.",
+      "description": "Use when your situation requires a custom approach not covered above.",
       "recommended": false,
       "risk": "VARIES",
       "outcome": "Letter tailored to your described strategy"
     }
   ],
-  "recommendedStrategy": "dispute | partial | reinspection
-    | appraisal | other",
-  "recommendedStrategyRationale": "string — why recommended",
+  "recommendedStrategy": "dispute",
+  "recommendedStrategyRationale": "Denial lacks documentation and procedural support for a full dispute.",
   "insurerContactInfo": {
-    "phone": "string or null",
-    "address": "Complete insurer mailing address from
-      the denial letter header — include street, city,
-      state, ZIP. This is where the policyholder sends
-      their response. null if not found.",
-    "faxNumber": "string or null",
-    "adjusterEmail": "string or null"
+    "phone": "1-800-555-0100",
+    "address": "123 Insurance Plaza, Dallas, TX 75201",
+    "faxNumber": null,
+    "adjusterEmail": null
   },
-  "urgency": "routine | elevated | urgent | critical"
+  "urgency": "urgent"
 }
 
 CRITICAL RULES:
@@ -161,7 +155,8 @@ CRITICAL RULES:
 - If state unknown: use principle-based references only
 - Quote their exact denial language to build the rebuttal
 - Identify every procedural gap and documentation deficiency
-- Return ONLY the JSON object. No preamble. No markdown.`;
+- Return ONLY the JSON object. No preamble. No markdown.
+- NEVER echo schema descriptions or type labels as field values`;
 
 function buildUserMessage(body, letterText) {
   return `Denial/underpayment letter:
@@ -298,13 +293,26 @@ async function extractTextFromImage(openai, base64, mime) {
 async function runAnalysis(openai, userMessage) {
   return openai.chat.completions.create({
     model: "gpt-4o",
-    max_tokens: 1500,
+    max_tokens: 2800,
     response_format: { type: "json_object" },
     messages: [
       { role: "system", content: ANALYSIS_SYSTEM_PROMPT },
       { role: "user", content: userMessage },
     ],
   });
+}
+
+function validateAnalysis(analysis) {
+  if (!analysis || typeof analysis !== "object") return false;
+  const insurerName = String(analysis.insurerName || "");
+  if (/string\s*[—\-]/i.test(insurerName) || /name of insurance/i.test(insurerName)) {
+    return false;
+  }
+  const claimType = String(analysis.claimType || "");
+  if (/string\s*[—\-]/i.test(claimType)) return false;
+  const denialBasis = String(analysis.denialBasis || "").trim();
+  if (!denialBasis || /string\s*[—\-]/i.test(denialBasis)) return false;
+  return true;
 }
 
 exports.handler = async (event) => {
@@ -361,19 +369,23 @@ exports.handler = async (event) => {
     usageLog = completion.usage;
     let raw = completion.choices[0]?.message?.content || "{}";
     let analysis;
+    let parseOk = false;
 
     try {
       analysis = JSON.parse(raw);
-    } catch {
+      if (validateAnalysis(analysis)) parseOk = true;
+    } catch (_) {}
+
+    if (!parseOk) {
       const retry = await openai.chat.completions.create({
         model: "gpt-4o",
-        max_tokens: 1500,
+        max_tokens: 2800,
         response_format: { type: "json_object" },
         messages: [
           { role: "system", content: ANALYSIS_SYSTEM_PROMPT },
           {
             role: "user",
-            content: `${userMessage}\n\nYour previous output was not valid JSON. Return ONLY one valid JSON object matching the schema. No markdown.`,
+            content: `${userMessage}\n\nYour previous output was not valid JSON or contained schema placeholder text instead of real extracted values. Return ONLY one valid JSON object matching the schema with real data from the letter. No markdown.`,
           },
         ],
       });
@@ -381,6 +393,9 @@ exports.handler = async (event) => {
       raw = retry.choices[0]?.message?.content || "{}";
       try {
         analysis = JSON.parse(raw);
+        if (!validateAnalysis(analysis)) {
+          analysis = fallbackAnalysis("Model returned schema placeholders after retry.");
+        }
       } catch {
         analysis = fallbackAnalysis("Model returned invalid JSON after retry.");
       }
