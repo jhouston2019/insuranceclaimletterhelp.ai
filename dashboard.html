@@ -568,7 +568,7 @@ ${letterBlock}
     // Load letters from claim_jobs
     const { data: jobs, error: jobsErr } = await supabase
       .from('claim_jobs')
-      .select('id, created_at, claim_type, payer_name, policy_number, claim_number, letter_html, letter_full, selected_strategy, paid, is_unlocked')
+      .select('id, created_at, claim_type, payer_name, letter_html, letter_full, selected_strategy, paid, is_unlocked')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
