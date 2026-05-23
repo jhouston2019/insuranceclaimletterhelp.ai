@@ -113,6 +113,9 @@ Sincerely,
 [PHONE]
 [EMAIL]
 
+Always output [INSURED SIGNATURE] as a bracketed placeholder.
+Never output a raw underscore line for the signature.
+
 Enclosures:
 [list from documentationNeeded in analysis]
 
